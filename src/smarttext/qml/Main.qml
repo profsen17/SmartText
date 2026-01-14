@@ -17,7 +17,7 @@ ApplicationWindow {
     property var appSafe: (typeof app !== "undefined" && app !== null) ? app : null
     property int editorFontSize: 11
 
-    //Shortcuts
+    // ---- Shortcuts ----
 
     Shortcut { sequence: settingsStore.shortcutNew; onActivated: if (appSafe) appSafe.new_file() }
     Shortcut { sequence: settingsStore.shortcutOpen; onActivated: openDialog.open() }
