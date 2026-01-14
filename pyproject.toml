@@ -1,0 +1,16 @@
+[project]
+name = "smarttext"
+version = "0.1.0"
+requires-python = ">=3.10"
+dependencies = [
+  "PySide6>=6.6"
+]
+
+[project.scripts]
+smarttext = "smarttext.main:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.package-data]
+smarttext = ["qml/*.qml"]
