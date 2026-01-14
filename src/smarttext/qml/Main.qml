@@ -15,14 +15,33 @@ ApplicationWindow {
 
     property int cornerRadius: 10
     property var appSafe: (typeof app !== "undefined" && app !== null) ? app : null
-    property int editorFontSize: 11
+    property var settingsSafe: (typeof settingsStore !== "undefined" && settingsStore !== null) ? settingsStore : null
 
     // ---- Shortcuts ----
 
-    Shortcut { sequence: settingsStore.shortcutNew; onActivated: if (appSafe) appSafe.new_file() }
-    Shortcut { sequence: settingsStore.shortcutOpen; onActivated: openDialog.open() }
-    Shortcut { sequence: settingsStore.shortcutSave; onActivated: if (appSafe) appSafe.save() }
-    Shortcut { sequence: settingsStore.shortcutSaveAs; onActivated: saveAsDialog.open() }
+    Shortcut {
+        enabled: settingsSafe !== null
+        sequence: settingsSafe ? settingsSafe.shortcutNew : ""
+        onActivated: if (appSafe) appSafe.new_file()
+    }
+
+    Shortcut {
+        enabled: settingsSafe !== null
+        sequence: settingsSafe ? settingsSafe.shortcutOpen : ""
+        onActivated: openDialog.open()
+    }
+
+    Shortcut {
+        enabled: settingsSafe !== null
+        sequence: settingsSafe ? settingsSafe.shortcutSave : ""
+        onActivated: if (appSafe) appSafe.save()
+    }
+
+    Shortcut {
+        enabled: settingsSafe !== null
+        sequence: settingsSafe ? settingsSafe.shortcutSaveAs : ""
+        onActivated: saveAsDialog.open()
+    }
 
     title: appSafe
         ? (appSafe.documentTitle + (appSafe.modified ? " •" : ""))
@@ -79,7 +98,7 @@ ApplicationWindow {
                     wrapMode: TextArea.Wrap
                     padding: 12
                     color: "#eeeeee"
-                    font.pixelSize: settingsStore.fontSize
+                    font.pixelSize: settingsSafe ? settingsSafe.fontSize : 11
 
                     background: Rectangle {
                         radius: cornerRadius
