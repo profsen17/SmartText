@@ -125,8 +125,17 @@ class SettingsStore(QObject):
     def getTheme(self) -> str:
         return self._theme
 
-    def setTheme(self, v: str) -> None:
-        v = str(v)
+    def setTheme(self, v: str | None) -> None:
+        if v is None:
+            return
+        v = str(v).strip()
+        normalized = {
+            "dark": "Dark",
+            "white": "White",
+            "purple": "Purple",
+        }.get(v.lower())
+        if normalized is not None:
+            v = normalized
         if v == self._theme:
             return
         self._theme = v
