@@ -61,7 +61,7 @@ class SettingsStore(QObject):
         sc = data.get("shortcuts", {})
 
         self.setFontSize(int(fs))
-        self.setTheme(str(data.get("theme", self._theme)))
+        self.setTheme(str(data.get("theme")))
         self.setShortcutNew(str(sc.get("new", self._shortcut_new)))
         self.setShortcutOpen(str(sc.get("open", self._shortcut_open)))
         self.setShortcutSave(str(sc.get("save", self._shortcut_save)))
@@ -127,8 +127,6 @@ class SettingsStore(QObject):
 
     def setTheme(self, v: str) -> None:
         v = str(v)
-        if v not in ("Dark", "White", "Purple"):
-            v = "Dark"
         if v == self._theme:
             return
         self._theme = v
