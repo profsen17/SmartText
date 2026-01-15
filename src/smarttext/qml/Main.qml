@@ -43,6 +43,13 @@ ApplicationWindow {
         onActivated: saveAsDialog.open()
     }
 
+    Connections {
+        target: appSafe
+        function onRequestSaveAs() {
+            saveAsDialog.open()
+        }
+    }
+
     title: appSafe
         ? (appSafe.documentTitle + (appSafe.modified ? " •" : ""))
         : "SmartText"
@@ -66,6 +73,125 @@ ApplicationWindow {
                 titleText: appSafe
                     ? (appSafe.documentTitle + (appSafe.modified ? " •" : ""))
                     : "SmartText"
+            }
+
+            // ---- Tabs strip ----
+            Item {
+                id: tabsBar
+                Layout.fillWidth: true
+                height: 44
+
+                // background rail behind tabs
+                Rectangle {
+                    anchors.fill: parent
+                    radius: win.cornerRadius
+                    color: "#1b1b1b"
+                    border.color: "#2a2a2a"
+                    border.width: 1
+                }
+
+                ListView {
+                    id: tabsView
+                    anchors.fill: parent
+                    anchors.margins: 6
+                    orientation: ListView.Horizontal
+                    spacing: 8
+                    clip: true
+
+                    model: appSafe ? appSafe.tabsModel : null
+                    currentIndex: appSafe ? appSafe.currentIndex : 0
+
+
+                    delegate: Item {
+                        id: tabItem
+                        width: Math.max(140, tabText.implicitWidth + 46)
+                        height: 32
+
+                        property bool active: (index === tabsView.currentIndex)
+
+                        Rectangle {
+                            id: tabBg
+                            anchors.fill: parent
+                            radius: 10
+
+                            // active tab "connects" with editor by matching editor bg
+                            color: tabItem.active ? "#111111" : "#232323"
+                            border.color: tabItem.active ? "#333333" : "#2a2a2a"
+                            border.width: 1
+
+                            // this is the trick: active tab overlaps *down* into editor,
+                            // so it visually merges instead of having a separator line.
+                            anchors.bottomMargin: tabItem.active ? -8 : 0
+                        }
+
+                        // bottom cover to hide the rail border line under the active tab
+                        Rectangle {
+                            visible: tabItem.active
+                            anchors.left: parent.left
+                            anchors.right: parent.right
+                            height: 10
+                            y: parent.height - 2
+                            color: "#111111"
+                        }
+
+                        MouseArea {
+                            anchors.fill: parent
+                            onClicked: if (appSafe) appSafe.set_current_index(index)
+                        }
+
+                        Row {
+                            anchors.fill: parent
+                            anchors.leftMargin: 12
+                            anchors.rightMargin: 10
+                            spacing: 10
+
+                            Text {
+                                id: tabText
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: model.title    // <-- must exist in TabsModel role
+                                color: tabItem.active ? "#eaeaea" : "#bdbdbd"
+                                elide: Text.ElideRight
+                                font.pixelSize: 13
+                                width: tabItem.width - 44
+                            }
+
+                            // Close / Unsaved indicator
+                            Rectangle {
+                                width: 18
+                                height: 18
+                                radius: 6
+                                anchors.verticalCenter: parent.verticalCenter
+                                color: closeArea.containsMouse ? "#333333" : "transparent"
+
+                                MouseArea {
+                                    id: closeArea
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    onClicked: if (appSafe) appSafe.close_tab(index)
+                                }
+
+                                // white dot if unsaved
+                                Rectangle {
+                                    anchors.centerIn: parent
+                                    width: 9
+                                    height: 9
+                                    radius: 4.5
+                                    color: "#ffffff"
+                                    visible: !!model.modified
+                                }
+
+                                // X if saved
+                                Text {
+                                    anchors.centerIn: parent
+                                    text: "×"
+                                    color: "#cfcfcf"
+                                    font.pixelSize: 14
+                                    visible: !model.modified
+                                }
+                            }
+                        }
+                    }
+                }
             }
 
             Item {
