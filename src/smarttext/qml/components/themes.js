@@ -64,7 +64,6 @@ function get(name) {
       }
 
     case "Dark":
-    default:
       return {
         windowBg: "#1e1e1e",
         chromeBg: "#2a2a2a",
