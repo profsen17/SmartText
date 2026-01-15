@@ -396,91 +396,28 @@ ApplicationWindow {
                                 }
 
                                 Rectangle {
-                                    id: themePill
                                     Layout.fillWidth: true
-                                    height: 54
+                                    height: 84
                                     radius: settingsWin.cornerRadius
                                     color: palette.surface2
                                     border.color: palette.editorBorder
                                     border.width: 1
 
-                                    property int segmentCount: 3
-                                    property real pad: settingsWin.cornerRadius
-                                    property real segW: (width - pad*2) / segmentCount
-                                    property real thumbX: pad + selected * segW
-
-                                    property int selected: (settingsStore && settingsStore.theme === "Dark") ? 0
-                                                         : (settingsStore && settingsStore.theme === "White") ? 1
-                                                         : (settingsStore && settingsStore.theme === "Purple") ? 2
-                                                         : -1
-
-                                    Rectangle {
+                                    ColumnLayout {
                                         anchors.fill: parent
-                                        anchors.margins: themePill.pad
-                                        radius: (themePill.height - themePill.pad*2) / 2
-                                        color: palette.chromeBg
-                                    }
+                                        anchors.margins: 14
+                                        spacing: 6
 
-                                    Rectangle {
-                                        id: thumb
-                                        x: themePill.thumbX
-                                        y: themePill.pad + 2
-                                        width: themePill.segW
-                                        height: themePill.height - (themePill.pad + 2) * 2
-                                        radius: height / 2
-                                        color: palette.cardBg
-                                        border.color: palette.borderStrong
-                                        border.width: 1
-
-                                        Behavior on x { NumberAnimation { duration: 240; easing.type: Easing.OutCubic } }
-                                    }
-
-                                    Row {
-                                        anchors.fill: parent
-                                        anchors.margins: themePill.pad
-                                        spacing: 0
-
-                                        function labelColor(i) {
-                                            return (themePill.selected === i) ? palette.text : palette.textMuted
+                                        Label {
+                                            text: "Theme"
+                                            color: palette.textSoft
+                                            font.pixelSize: 13
                                         }
 
-                                        Item {
-                                            width: themePill.segW
-                                            height: parent.height
-                                            MouseArea {
-                                                anchors.fill: parent
-                                                onClicked: {
-                                                    themePill.selected = 0
-                                                    if (settingsStore) settingsStore.theme = "Dark"
-                                                }
-                                            }
-                                            Text { anchors.centerIn: parent; text: "Dark"; color: parent.parent.labelColor(0); font.pixelSize: 13 }
-                                        }
-
-                                        Item {
-                                            width: themePill.segW
-                                            height: parent.height
-                                            MouseArea {
-                                                anchors.fill: parent
-                                                onClicked: {
-                                                    themePill.selected = 1
-                                                    if (settingsStore) settingsStore.theme = "White"
-                                                }
-                                            }
-                                            Text { anchors.centerIn: parent; text: "White"; color: parent.parent.labelColor(1); font.pixelSize: 13 }
-                                        }
-
-                                        Item {
-                                            width: themePill.segW
-                                            height: parent.height
-                                            MouseArea {
-                                                anchors.fill: parent
-                                                onClicked: {
-                                                    themePill.selected = 2
-                                                    if (settingsStore) settingsStore.theme = "Purple"
-                                                }
-                                            }
-                                            Text { anchors.centerIn: parent; text: "Purple"; color: parent.parent.labelColor(2); font.pixelSize: 13 }
+                                        Label {
+                                            text: "Dark (more options coming soon)"
+                                            color: palette.text
+                                            font.pixelSize: 14
                                         }
                                     }
                                 }

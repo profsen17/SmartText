@@ -1,94 +1,28 @@
 function get(name) {
-  switch (name) {
-    case "White":
-      return {
-        // surfaces
-        windowBg: "#f3f3f5",
-        chromeBg: "#e9e9ee",
-        railBg:   "#e7e7ec",
-        cardBg:   "#ffffff",
-        surface2: "#f6f6f9",
+  return {
+    windowBg: "#1e1e1e",
+    chromeBg: "#2a2a2a",
+    railBg:   "#1b1b1b",
+    cardBg:   "#161616",
+    surface2: "#111111",
 
-        // editor
-        editorBg: "#ffffff",
-        editorBorder: "#d6d6df",
+    editorBg: "#111111",
+    editorBorder: "#333333",
 
-        // borders
-        border: "#d6d6df",
-        borderStrong: "#c7c7d2",
+    border: "#2a2a2a",
+    borderStrong: "#333333",
 
-        // text
-        text: "#111111",
-        textSoft: "#2a2a2a",
-        textMuted: "#4f4f4f",
+    text: "#ffffff",
+    textSoft: "#f0f0f0",
+    textMuted: "#d9d9d9",
 
-        // controls
-        btnBg: "#e7e7ec",
-        btnHover: "#dedee6",
-        dangerHover: "#d44b4b",
+    btnBg: "#2a2a2a",
+    btnHover: "#333333",
+    dangerHover: "#c0392b",
 
-        // tabs
-        tabActiveBg: "#ffffff",
-        tabInactiveBg: "#e4e4ea",
+    tabActiveBg: "#111111",
+    tabInactiveBg: "#232323",
 
-        // overlay
-        overlayBottom: "#AA000000"
-      }
-
-    case "Purple":
-      return {
-        windowBg: "#18131f",
-        chromeBg: "#231a2d",
-        railBg:   "#1f1728",
-        cardBg:   "#1a1422",
-        surface2: "#120d18",
-
-        editorBg: "#120d18",
-        editorBorder: "#3b2b52",
-
-        border: "#352747",
-        borderStrong: "#4a3566",
-
-        text: "#ffffff",
-        textSoft: "#f0f0f0",
-        textMuted: "#d9d9d9",
-
-        btnBg: "#2a1f38",
-        btnHover: "#352747",
-        dangerHover: "#c0392b",
-
-        tabActiveBg: "#120d18",
-        tabInactiveBg: "#2a1f38",
-
-        overlayBottom: "#AA000000"
-      }
-
-    case "Dark":
-      return {
-        windowBg: "#1e1e1e",
-        chromeBg: "#2a2a2a",
-        railBg:   "#1b1b1b",
-        cardBg:   "#161616",
-        surface2: "#111111",
-
-        editorBg: "#111111",
-        editorBorder: "#333333",
-
-        border: "#2a2a2a",
-        borderStrong: "#333333",
-
-        text: "#ffffff",
-        textSoft: "#f0f0f0",
-        textMuted: "#d9d9d9",
-
-        btnBg: "#2a2a2a",
-        btnHover: "#333333",
-        dangerHover: "#c0392b",
-
-        tabActiveBg: "#111111",
-        tabInactiveBg: "#232323",
-
-        overlayBottom: "#AA000000"
-      }
+    overlayBottom: "#AA000000"
   }
 }
