@@ -23,7 +23,7 @@ ApplicationWindow {
     readonly property string defaultShortcutSave: "Ctrl+S"
     readonly property string defaultShortcutSaveAs: "Ctrl+Shift+S"
 
-    readonly property var palette: Themes.get((settingsStore && settingsStore.theme) ? settingsStore.theme : "Dark") || Themes.get("Dark")
+    readonly property var palette: Themes.get((settingsStore && settingsStore.theme) ? settingsStore.theme : null)
 
     function norm(seq) {
         if (!seq) return ""
@@ -409,9 +409,10 @@ ApplicationWindow {
                                     property real segW: (width - pad*2) / segmentCount
                                     property real thumbX: pad + selected * segW
 
-                                    property int selected: (settingsStore && settingsStore.theme === "White") ? 1
+                                    property int selected: (settingsStore && settingsStore.theme === "Dark") ? 0
+                                                         : (settingsStore && settingsStore.theme === "White") ? 1
                                                          : (settingsStore && settingsStore.theme === "Purple") ? 2
-                                                         : 0
+                                                         : -1
 
                                     Rectangle {
                                         anchors.fill: parent

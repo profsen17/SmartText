@@ -18,7 +18,7 @@ ApplicationWindow {
     property var appSafe: (typeof app !== "undefined" && app !== null) ? app : null
     property var settingsSafe: (typeof settingsStore !== "undefined" && settingsStore !== null) ? settingsStore : null
 
-    readonly property var palette: Themes.get(settingsSafe ? settingsSafe.theme : "Dark")
+    readonly property var palette: Themes.get(settingsSafe ? settingsSafe.theme : null)
 
     // ---- Shortcuts ----
     Shortcut {
