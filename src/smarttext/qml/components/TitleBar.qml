@@ -20,6 +20,7 @@ Rectangle {
     // Theme-resolved colors
     readonly property color _barBg:            palette ? palette.chromeBg     : barColor
     readonly property color _text:             palette ? palette.textSoft     : textColor
+    readonly property color _icon:             palette ? palette.text         : textColor
     readonly property color _btnBg:            palette ? palette.btnBg        : barColor
     readonly property color _btnHover:         palette ? palette.btnHover     : hoverColor
     readonly property color _dangerHover:      palette ? palette.dangerHover  : dangerHoverColor
@@ -79,7 +80,7 @@ Rectangle {
                     Rectangle {
                         anchors.centerIn: parent
                         width: 12; height: 2; radius: 1
-                        color: bar._text
+                        color: bar._icon
                     }
                 }
             }
@@ -115,7 +116,7 @@ Rectangle {
                         height: 10
                         radius: 2
                         color: "transparent"
-                        border.color: bar._text
+                        border.color: bar._icon
                         border.width: 2
                     }
 
@@ -133,7 +134,7 @@ Rectangle {
                             height: 8
                             radius: 2
                             color: "transparent"
-                            border.color: bar._text
+                            border.color: bar._icon
                             border.width: 2
                         }
 
@@ -144,7 +145,7 @@ Rectangle {
                             height: 8
                             radius: 2
                             color: "transparent"
-                            border.color: bar._text
+                            border.color: bar._icon
                             border.width: 2
                         }
                     }
@@ -168,8 +169,8 @@ Rectangle {
                 contentItem: Item {
                     width: 12; height: 12
                     anchors.centerIn: parent
-                    Rectangle { anchors.centerIn: parent; width: 12; height: 2; radius: 1; color: bar._text; rotation: 45 }
-                    Rectangle { anchors.centerIn: parent; width: 12; height: 2; radius: 1; color: bar._text; rotation: -45 }
+                    Rectangle { anchors.centerIn: parent; width: 12; height: 2; radius: 1; color: bar._icon; rotation: 45 }
+                    Rectangle { anchors.centerIn: parent; width: 12; height: 2; radius: 1; color: bar._icon; rotation: -45 }
                 }
             }
         }

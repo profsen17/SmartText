@@ -34,7 +34,7 @@ class SettingsStore(QObject):
 
         # defaults
         self._font_size = 11
-        self._theme = "Dark"   # Dark | White | Purple
+        self._theme = "Dark"
 
         self._shortcut_new = "Ctrl+N"
         self._shortcut_open = "Ctrl+O"
@@ -126,16 +126,7 @@ class SettingsStore(QObject):
         return self._theme
 
     def setTheme(self, v: str | None) -> None:
-        if v is None:
-            return
-        v = str(v).strip()
-        normalized = {
-            "dark": "Dark",
-            "white": "White",
-            "purple": "Purple",
-        }.get(v.lower())
-        if normalized is not None:
-            v = normalized
+        v = "Dark"
         if v == self._theme:
             return
         self._theme = v
