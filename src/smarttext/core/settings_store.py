@@ -21,6 +21,7 @@ class SettingsStore(QObject):
     shortcutOpenChanged = Signal()
     shortcutSaveChanged = Signal()
     shortcutSaveAsChanged = Signal()
+    themeChanged = Signal()
 
     # optional signal if you want to debug
     loaded = Signal()
@@ -33,6 +34,7 @@ class SettingsStore(QObject):
 
         # defaults
         self._font_size = 11
+        self._theme = "Dark"   # Dark | White | Purple
 
         self._shortcut_new = "Ctrl+N"
         self._shortcut_open = "Ctrl+O"
@@ -45,6 +47,7 @@ class SettingsStore(QObject):
     def _to_dict(self) -> Dict[str, Any]:
         return {
             "fontSize": int(self._font_size),
+            "theme": self._theme,
             "shortcuts": {
                 "new": self._shortcut_new,
                 "open": self._shortcut_open,
@@ -58,6 +61,7 @@ class SettingsStore(QObject):
         sc = data.get("shortcuts", {})
 
         self.setFontSize(int(fs))
+        self.setTheme(str(data.get("theme", self._theme)))
         self.setShortcutNew(str(sc.get("new", self._shortcut_new)))
         self.setShortcutOpen(str(sc.get("open", self._shortcut_open)))
         self.setShortcutSave(str(sc.get("save", self._shortcut_save)))
@@ -117,6 +121,21 @@ class SettingsStore(QObject):
         self.save()
 
     fontSize = Property(int, getFontSize, setFontSize, notify=fontSizeChanged)
+
+    def getTheme(self) -> str:
+        return self._theme
+
+    def setTheme(self, v: str) -> None:
+        v = str(v)
+        if v not in ("Dark", "White", "Purple"):
+            v = "Dark"
+        if v == self._theme:
+            return
+        self._theme = v
+        self.themeChanged.emit()
+        self.save()
+
+    theme = Property(str, getTheme, setTheme, notify=themeChanged)
 
     def getShortcutNew(self) -> str:
         return self._shortcut_new

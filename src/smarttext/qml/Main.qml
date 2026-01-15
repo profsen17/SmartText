@@ -3,6 +3,7 @@ import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.15
 import QtQuick.Dialogs 6.5
 import "components"
+import "components/themes.js" as Themes
 
 ApplicationWindow {
     id: win
@@ -17,26 +18,24 @@ ApplicationWindow {
     property var appSafe: (typeof app !== "undefined" && app !== null) ? app : null
     property var settingsSafe: (typeof settingsStore !== "undefined" && settingsStore !== null) ? settingsStore : null
 
-    // ---- Shortcuts ----
+    readonly property var palette: Themes.get(settingsSafe ? settingsSafe.theme : "Dark")
 
+    // ---- Shortcuts ----
     Shortcut {
         enabled: settingsSafe !== null
         sequence: settingsSafe ? settingsSafe.shortcutNew : ""
         onActivated: if (appSafe) appSafe.new_file()
     }
-
     Shortcut {
         enabled: settingsSafe !== null
         sequence: settingsSafe ? settingsSafe.shortcutOpen : ""
         onActivated: openDialog.open()
     }
-
     Shortcut {
         enabled: settingsSafe !== null
         sequence: settingsSafe ? settingsSafe.shortcutSave : ""
         onActivated: if (appSafe) appSafe.save()
     }
-
     Shortcut {
         enabled: settingsSafe !== null
         sequence: settingsSafe ? settingsSafe.shortcutSaveAs : ""
@@ -45,20 +44,16 @@ ApplicationWindow {
 
     Connections {
         target: appSafe
-        function onRequestSaveAs() {
-            saveAsDialog.open()
-        }
+        function onRequestSaveAs() { saveAsDialog.open() }
     }
 
-    title: appSafe
-        ? (appSafe.documentTitle + (appSafe.modified ? " •" : ""))
-        : "SmartText"
+    title: "SmartText"
 
     Rectangle {
         id: rootBg
         anchors.fill: parent
         radius: cornerRadius
-        color: "#1e1e1e"
+        color: palette.windowBg
         clip: true
 
         ColumnLayout {
@@ -70,9 +65,8 @@ ApplicationWindow {
                 Layout.fillWidth: true
                 window: win
                 cornerRadius: win.cornerRadius
-                titleText: appSafe
-                    ? (appSafe.documentTitle + (appSafe.modified ? " •" : ""))
-                    : "SmartText"
+                titleText: ""
+                palette: palette
             }
 
             // ---- Tabs strip ----
@@ -81,12 +75,11 @@ ApplicationWindow {
                 Layout.fillWidth: true
                 height: 44
 
-                // background rail behind tabs
                 Rectangle {
                     anchors.fill: parent
                     radius: win.cornerRadius
-                    color: "#1b1b1b"
-                    border.color: "#2a2a2a"
+                    color: palette.railBg
+                    border.color: palette.border
                     border.width: 1
                 }
 
@@ -101,7 +94,6 @@ ApplicationWindow {
                     model: appSafe ? appSafe.tabsModel : null
                     currentIndex: appSafe ? appSafe.currentIndex : 0
 
-
                     delegate: Item {
                         id: tabItem
                         width: Math.max(140, tabText.implicitWidth + 46)
@@ -113,25 +105,19 @@ ApplicationWindow {
                             id: tabBg
                             anchors.fill: parent
                             radius: 10
-
-                            // active tab "connects" with editor by matching editor bg
-                            color: tabItem.active ? "#111111" : "#232323"
-                            border.color: tabItem.active ? "#333333" : "#2a2a2a"
+                            color: tabItem.active ? palette.tabActiveBg : palette.tabInactiveBg
+                            border.color: tabItem.active ? palette.editorBorder : palette.border
                             border.width: 1
-
-                            // this is the trick: active tab overlaps *down* into editor,
-                            // so it visually merges instead of having a separator line.
                             anchors.bottomMargin: tabItem.active ? -8 : 0
                         }
 
-                        // bottom cover to hide the rail border line under the active tab
                         Rectangle {
                             visible: tabItem.active
                             anchors.left: parent.left
                             anchors.right: parent.right
                             height: 10
                             y: parent.height - 2
-                            color: "#111111"
+                            color: palette.editorBg
                         }
 
                         MouseArea {
@@ -148,8 +134,8 @@ ApplicationWindow {
                             Text {
                                 id: tabText
                                 anchors.verticalCenter: parent.verticalCenter
-                                text: model.title    // <-- must exist in TabsModel role
-                                color: tabItem.active ? "#eaeaea" : "#bdbdbd"
+                                text: model.title
+                                color: tabItem.active ? palette.text : palette.textMuted
                                 elide: Text.ElideRight
                                 font.pixelSize: 13
                                 width: tabItem.width - 44
@@ -161,7 +147,7 @@ ApplicationWindow {
                                 height: 18
                                 radius: 6
                                 anchors.verticalCenter: parent.verticalCenter
-                                color: closeArea.containsMouse ? "#333333" : "transparent"
+                                color: closeArea.containsMouse ? palette.btnHover : "transparent"
 
                                 MouseArea {
                                     id: closeArea
@@ -170,7 +156,6 @@ ApplicationWindow {
                                     onClicked: if (appSafe) appSafe.close_tab(index)
                                 }
 
-                                // white dot if unsaved
                                 Rectangle {
                                     anchors.centerIn: parent
                                     width: 9
@@ -180,11 +165,10 @@ ApplicationWindow {
                                     visible: !!model.modified
                                 }
 
-                                // X if saved
                                 Text {
                                     anchors.centerIn: parent
                                     text: "×"
-                                    color: "#cfcfcf"
+                                    color: palette.textSoft
                                     font.pixelSize: 14
                                     visible: !model.modified
                                 }
@@ -194,19 +178,20 @@ ApplicationWindow {
                 }
             }
 
+            // ---- Editor + overlay ----
             Item {
                 id: editorShell
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 clip: true
 
-                // ---- Feel knobs ----
-                property int overlayHeight: 140        // fade height
-                property int overlaySlide: 40          // fade slide distance
-                property int buttonSlide: 10           // per-button slide distance
-                property real buttonBaseOpacity: 0.85  // shown opacity (0..1)
-                property int idleDelayMs: 5000         // hide after idle ms
-                property int hoverDelayMs: 120         // show after hover ms
+                // Feel knobs
+                property int overlayHeight: 140
+                property int overlaySlide: 40
+                property int buttonSlide: 10
+                property real buttonBaseOpacity: 0.85
+                property int idleDelayMs: 5000
+                property int hoverDelayMs: 120
 
                 property bool hovering: false
                 property bool idleHidden: false
@@ -223,13 +208,13 @@ ApplicationWindow {
                     anchors.fill: parent
                     wrapMode: TextArea.Wrap
                     padding: 12
-                    color: "#eeeeee"
+                    color: palette.text
                     font.pixelSize: settingsSafe ? settingsSafe.fontSize : 11
 
                     background: Rectangle {
                         radius: cornerRadius
-                        color: "#111111"
-                        border.color: "#333333"
+                        color: palette.editorBg
+                        border.color: palette.editorBorder
                         border.width: 1
                     }
 
@@ -239,9 +224,8 @@ ApplicationWindow {
                     Keys.onPressed: (event) => {
                         if (event.key === Qt.Key_Tab) {
                             event.accepted = true
-
                             const cursor = editor.cursorPosition
-                            editor.insert(cursor, "    ")   // 4 spaces
+                            editor.insert(cursor, "    ")
                             editor.cursorPosition = cursor + 4
                         }
                     }
@@ -286,6 +270,7 @@ ApplicationWindow {
                     onTriggered: editorShell.idleHidden = true
                 }
 
+                // ---- Overlay ----
                 Item {
                     id: overlay
                     anchors.left: parent.left
@@ -296,25 +281,18 @@ ApplicationWindow {
                     anchors.bottomMargin: 2
 
                     height: editorShell.overlayHeight
-
                     enabled: editorShell.showOverlay
                     opacity: editorShell.showOverlay ? 1 : 0
 
                     transform: Translate {
                         id: overlayTranslate
                         y: editorShell.showOverlay ? 0 : editorShell.overlaySlide
-                        Behavior on y {
-                            NumberAnimation { duration: 260; easing.type: Easing.OutCubic }
-                        }
+                        Behavior on y { NumberAnimation { duration: 260; easing.type: Easing.OutCubic } }
                     }
-
-                    Behavior on opacity {
-                        NumberAnimation { duration: 180; easing.type: Easing.OutCubic }
-                    }
+                    Behavior on opacity { NumberAnimation { duration: 180; easing.type: Easing.OutCubic } }
 
                     // LEFT: Settings
                     Row {
-                        id: leftActions
                         spacing: 10
                         anchors.left: parent.left
                         anchors.bottom: parent.bottom
@@ -322,14 +300,14 @@ ApplicationWindow {
                         anchors.bottomMargin: 14
 
                         CircleIconButton {
-                            id: btnSettings
                             tooltipText: "Settings"
                             iconSource: "../icons/settings.svg"
                             onClicked: settingsWindow.show()
+                            palette: win.palette
                         }
                     }
 
-                    // RIGHT: Existing actions
+                    // RIGHT: Actions
                     Row {
                         id: rightActions
                         spacing: 10
@@ -338,20 +316,11 @@ ApplicationWindow {
                         anchors.rightMargin: 14
                         anchors.bottomMargin: 14
 
-                        // Group motion (buttons handle opacity)
                         transform: Translate { id: actionsTranslate; y: 28 }
 
                         states: [
-                            State {
-                                name: "shown"
-                                when: editorShell.showOverlay
-                                PropertyChanges { target: actionsTranslate; y: 0 }
-                            },
-                            State {
-                                name: "hidden"
-                                when: !editorShell.showOverlay
-                                PropertyChanges { target: actionsTranslate; y: 28 }
-                            }
+                            State { name: "shown";  when: editorShell.showOverlay; PropertyChanges { target: actionsTranslate; y: 0 } },
+                            State { name: "hidden"; when: !editorShell.showOverlay; PropertyChanges { target: actionsTranslate; y: 28 } }
                         ]
 
                         transitions: [
@@ -359,20 +328,15 @@ ApplicationWindow {
                                 from: "hidden"; to: "shown"
                                 SequentialAnimation {
                                     PauseAnimation { duration: 100 }
-                                    ParallelAnimation {
-                                        NumberAnimation { target: actionsTranslate; property: "y"; duration: 280; easing.type: Easing.OutCubic }
-                                    }
+                                    NumberAnimation { target: actionsTranslate; property: "y"; duration: 280; easing.type: Easing.OutCubic }
                                 }
                             },
                             Transition {
                                 from: "shown"; to: "hidden"
-                                ParallelAnimation {
-                                    NumberAnimation { target: actionsTranslate; property: "y"; duration: 200; easing.type: Easing.OutCubic }
-                                }
+                                NumberAnimation { target: actionsTranslate; property: "y"; duration: 200; easing.type: Easing.OutCubic }
                             }
                         ]
 
-                        // ---- Helper: per-button hover boost ----
                         function boostOpacity(btn, hovered) {
                             if (!editorShell.showOverlay) return
                             btn.opacity = hovered ? 1.0 : editorShell.buttonBaseOpacity
@@ -383,6 +347,7 @@ ApplicationWindow {
                             size: 38
                             tooltipText: "New"
                             iconSource: "../icons/new.svg"
+                            palette: win.palette
                             onClicked: if (appSafe) appSafe.new_file()
 
                             opacity: 0
@@ -426,6 +391,7 @@ ApplicationWindow {
                             size: 38
                             tooltipText: "Open"
                             iconSource: "../icons/open.svg"
+                            palette: win.palette
                             onClicked: openDialog.open()
 
                             opacity: 0
@@ -469,23 +435,26 @@ ApplicationWindow {
                             size: 38
                             tooltipText: "Save"
                             iconSource: "../icons/save.svg"
-                            enabled: appSafe ? appSafe.modified : false
-                            onClicked: if (appSafe) appSafe.save()
+                            palette: win.palette
 
-                            // dim when disabled, but still animate in/out
-                            property real shownOpacity: (enabled ? editorShell.buttonBaseOpacity : 0.45)
+                            property bool canSave: (appSafe !== null) && appSafe.modified
+                            enabled: canSave
+                            property real baseOpacity: canSave ? editorShell.buttonBaseOpacity : 0.45
+
+                            onClicked: if (appSafe) appSafe.save()
 
                             opacity: 0
                             transform: Translate { id: trSave; y: editorShell.buttonSlide }
+
                             onHoveredChanged: {
                                 if (!editorShell.showOverlay) return
-                                if (!btnSave.enabled) return
-                                btnSave.opacity = hovered ? 1.0 : btnSave.shownOpacity
+                                if (!btnSave.canSave) return
+                                btnSave.opacity = hovered ? 1.0 : btnSave.baseOpacity
                             }
 
                             states: [
                                 State { name: "shown"; when: editorShell.showOverlay
-                                    PropertyChanges { target: btnSave; opacity: btnSave.shownOpacity }
+                                    PropertyChanges { target: btnSave; opacity: btnSave.baseOpacity }
                                     PropertyChanges { target: trSave; y: 0 }
                                 },
                                 State { name: "hidden"; when: !editorShell.showOverlay
@@ -520,6 +489,7 @@ ApplicationWindow {
                             size: 38
                             tooltipText: "Save As"
                             iconSource: "../icons/save_as.svg"
+                            palette: win.palette
                             onClicked: saveAsDialog.open()
 
                             opacity: 0

@@ -8,6 +8,18 @@ ToolButton {
     required property string tooltipText
     required property url iconSource
 
+    // Optional theme palette (pass win.palette)
+    property var palette: null
+
+    // Fallbacks (if palette is not passed)
+    property color _border:      palette ? palette.editorBorder : "#3a3a3a"
+    property color _btnBg:       palette ? palette.btnBg        : "#2a2a2a"
+    property color _btnHover:    palette ? palette.btnHover     : "#333333"
+    property color _btnDown:     palette ? palette.btnHover     : "#3a3a3a"
+    property color _tooltipBg:   palette ? palette.chromeBg     : "#1e1e1e"
+    property color _tooltipText: palette ? palette.text         : "#eeeeee"
+    property color _tooltipBorder: palette ? palette.borderStrong : "#333333"
+
     width: size
     height: size
     hoverEnabled: true
@@ -35,8 +47,8 @@ ToolButton {
         z: 999
 
         radius: 8
-        color: "#CC1e1e1e"
-        border.color: "#333333"
+        color: Qt.rgba(btn._tooltipBg.r, btn._tooltipBg.g, btn._tooltipBg.b, 0.80)
+        border.color: btn._tooltipBorder
         border.width: 1
 
         implicitWidth: tipLabel.implicitWidth + 16
@@ -53,7 +65,7 @@ ToolButton {
         Label {
             id: tipLabel
             text: btn.tooltipText
-            color: "#eeeeee"
+            color: btn._tooltipText
             font.pixelSize: 12
             anchors.centerIn: parent
         }
@@ -63,12 +75,12 @@ ToolButton {
     background: Rectangle {
         radius: btn.width / 2
         border.width: 1
-        border.color: "#3a3a3a"
+        border.color: btn._border
 
-        color: !btn.enabled ? "#2a2a2a"
-            : btn.down ? "#3a3a3a"
-            : btn.hovered ? "#333333"
-            : "#2a2a2a"
+        color: !btn.enabled ? btn._btnBg
+            : btn.down ? btn._btnDown
+            : btn.hovered ? btn._btnHover
+            : btn._btnBg
     }
 
     // -------- SVG icon --------

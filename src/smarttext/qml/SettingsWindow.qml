@@ -2,6 +2,7 @@ import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.15
 import "components"
+import "components/themes.js" as Themes
 
 ApplicationWindow {
     id: settingsWin
@@ -22,6 +23,8 @@ ApplicationWindow {
     readonly property string defaultShortcutSave: "Ctrl+S"
     readonly property string defaultShortcutSaveAs: "Ctrl+Shift+S"
 
+    readonly property var palette: Themes.get((settingsStore && settingsStore.theme) ? settingsStore.theme : "Dark") || Themes.get("Dark")
+
     function norm(seq) {
         if (!seq) return ""
         let s = ("" + seq).replace(/\s+/g, "")
@@ -36,7 +39,7 @@ ApplicationWindow {
     Rectangle {
         anchors.fill: parent
         radius: settingsWin.cornerRadius
-        color: "#1e1e1e"
+        color: palette.windowBg
         clip: true
 
         ColumnLayout {
@@ -50,6 +53,7 @@ ApplicationWindow {
                 window: settingsWin
                 cornerRadius: settingsWin.cornerRadius
                 titleText: "Settings"
+                palette: palette
             }
 
             RowLayout {
@@ -62,8 +66,8 @@ ApplicationWindow {
                     Layout.preferredWidth: 210
                     Layout.fillHeight: true
                     radius: settingsWin.cornerRadius
-                    color: "#161616"
-                    border.color: "#2a2a2a"
+                    color: palette.cardBg
+                    border.color: palette.border
                     border.width: 1
 
                     ColumnLayout {
@@ -73,7 +77,7 @@ ApplicationWindow {
 
                         Label {
                             text: "Menus"
-                            color: "#dddddd"
+                            color: palette.textSoft
                             font.pixelSize: 14
                         }
 
@@ -88,14 +92,14 @@ ApplicationWindow {
                             model: [
                                 { title: "TextArea" },
                                 { title: "Shortcuts" },
-                                { title: "Placeholder" }
+                                { title: "Look" }
                             ]
 
                             delegate: Rectangle {
                                 width: ListView.view.width
                                 height: 40
                                 radius: 8
-                                color: index === menu.currentIndex ? "#2a2a2a" : "transparent"
+                                color: index === menu.currentIndex ? palette.btnBg : "transparent"
 
                                 MouseArea {
                                     anchors.fill: parent
@@ -107,7 +111,7 @@ ApplicationWindow {
                                     anchors.left: parent.left
                                     anchors.leftMargin: 12
                                     text: modelData.title
-                                    color: "#dddddd"
+                                    color: palette.textSoft
                                     font.pixelSize: 13
                                 }
                             }
@@ -120,8 +124,8 @@ ApplicationWindow {
                     Layout.fillWidth: true
                     Layout.fillHeight: true
                     radius: settingsWin.cornerRadius
-                    color: "#161616"
-                    border.color: "#2a2a2a"
+                    color: palette.cardBg
+                    border.color: palette.border
                     border.width: 1
 
                     StackLayout {
@@ -137,7 +141,7 @@ ApplicationWindow {
 
                                 Label {
                                     text: "TextArea"
-                                    color: "#eeeeee"
+                                    color: palette.text
                                     font.pixelSize: 18
                                 }
 
@@ -145,8 +149,8 @@ ApplicationWindow {
                                     Layout.fillWidth: true
                                     height: 60
                                     radius: 10
-                                    color: "#111111"
-                                    border.color: "#333333"
+                                    color: palette.surface2
+                                    border.color: palette.editorBorder
                                     border.width: 1
 
                                     RowLayout {
@@ -154,7 +158,7 @@ ApplicationWindow {
                                         anchors.margins: 14
                                         spacing: 12
 
-                                        Label { text: "Font size"; color: "#dddddd"; font.pixelSize: 13 }
+                                        Label { text: "Font size"; color: palette.textSoft; font.pixelSize: 13 }
                                         Item { Layout.fillWidth: true }
 
                                         SpinBox {
@@ -164,16 +168,15 @@ ApplicationWindow {
                                             editable: true
                                             stepSize: 1
 
-                                            // only write back on user change
                                             onValueModified: if (settingsStore) settingsStore.fontSize = value
 
                                             implicitWidth: 80
-                                            implicitHeight: 28  // (you said you set this)
+                                            implicitHeight: 28
 
                                             background: Rectangle {
                                                 radius: settingsWin.cornerRadius
-                                                color: "#1e1e1e"
-                                                border.color: "#333333"
+                                                color: palette.cardBg
+                                                border.color: palette.borderStrong
                                                 border.width: 1
                                             }
                                         }
@@ -192,17 +195,21 @@ ApplicationWindow {
 
                                 Label {
                                     text: "Shortcuts"
-                                    color: "#eeeeee"
+                                    color: palette.text
                                     font.pixelSize: 18
                                 }
+
+                                // ---------- helper for shortcut rows ----------
+                                function hoverIn(rect)  { rect.color = palette.btnHover }
+                                function hoverOut(rect) { rect.color = palette.btnBg }
 
                                 // ---------- New ----------
                                 Rectangle {
                                     Layout.fillWidth: true
                                     height: 60
                                     radius: 10
-                                    color: "#111111"
-                                    border.color: "#333333"
+                                    color: palette.surface2
+                                    border.color: palette.editorBorder
                                     border.width: 1
 
                                     RowLayout {
@@ -210,29 +217,30 @@ ApplicationWindow {
                                         anchors.margins: 14
                                         spacing: 12
 
-                                        Label { text: "New"; color: "#dddddd"; font.pixelSize: 13 }
+                                        Label { text: "New"; color: palette.textSoft; font.pixelSize: 13 }
                                         Item { Layout.fillWidth: true }
 
                                         Rectangle {
+                                            id: scNew
                                             width: 180
                                             height: 34
                                             radius: settingsWin.cornerRadius
-                                            color: "#1e1e1e"
-                                            border.color: "#333333"
+                                            color: palette.btnBg
+                                            border.color: palette.borderStrong
                                             border.width: 1
 
                                             MouseArea {
                                                 anchors.fill: parent
                                                 hoverEnabled: true
                                                 onClicked: capturePopup.openFor("new", settingsStore ? settingsStore.shortcutNew : settingsWin.defaultShortcutNew)
-                                                onEntered: parent.color = "#222222"
-                                                onExited: parent.color = "#1e1e1e"
+                                                onEntered: settingsWin.selectedIndex = settingsWin.selectedIndex, hoverIn(scNew)
+                                                onExited: hoverOut(scNew)
                                             }
 
                                             Label {
                                                 anchors.centerIn: parent
                                                 text: settingsStore ? settingsStore.shortcutNew : settingsWin.defaultShortcutNew
-                                                color: "#eeeeee"
+                                                color: palette.text
                                                 font.pixelSize: 13
                                             }
                                         }
@@ -244,8 +252,8 @@ ApplicationWindow {
                                     Layout.fillWidth: true
                                     height: 60
                                     radius: 10
-                                    color: "#111111"
-                                    border.color: "#333333"
+                                    color: palette.surface2
+                                    border.color: palette.editorBorder
                                     border.width: 1
 
                                     RowLayout {
@@ -253,29 +261,30 @@ ApplicationWindow {
                                         anchors.margins: 14
                                         spacing: 12
 
-                                        Label { text: "Open"; color: "#dddddd"; font.pixelSize: 13 }
+                                        Label { text: "Open"; color: palette.textSoft; font.pixelSize: 13 }
                                         Item { Layout.fillWidth: true }
 
                                         Rectangle {
+                                            id: scOpen
                                             width: 180
                                             height: 34
                                             radius: settingsWin.cornerRadius
-                                            color: "#1e1e1e"
-                                            border.color: "#333333"
+                                            color: palette.btnBg
+                                            border.color: palette.borderStrong
                                             border.width: 1
 
                                             MouseArea {
                                                 anchors.fill: parent
                                                 hoverEnabled: true
                                                 onClicked: capturePopup.openFor("open", settingsStore ? settingsStore.shortcutOpen : settingsWin.defaultShortcutOpen)
-                                                onEntered: parent.color = "#222222"
-                                                onExited: parent.color = "#1e1e1e"
+                                                onEntered: hoverIn(scOpen)
+                                                onExited: hoverOut(scOpen)
                                             }
 
                                             Label {
                                                 anchors.centerIn: parent
                                                 text: settingsStore ? settingsStore.shortcutOpen : settingsWin.defaultShortcutOpen
-                                                color: "#eeeeee"
+                                                color: palette.text
                                                 font.pixelSize: 13
                                             }
                                         }
@@ -287,8 +296,8 @@ ApplicationWindow {
                                     Layout.fillWidth: true
                                     height: 60
                                     radius: 10
-                                    color: "#111111"
-                                    border.color: "#333333"
+                                    color: palette.surface2
+                                    border.color: palette.editorBorder
                                     border.width: 1
 
                                     RowLayout {
@@ -296,29 +305,30 @@ ApplicationWindow {
                                         anchors.margins: 14
                                         spacing: 12
 
-                                        Label { text: "Save"; color: "#dddddd"; font.pixelSize: 13 }
+                                        Label { text: "Save"; color: palette.textSoft; font.pixelSize: 13 }
                                         Item { Layout.fillWidth: true }
 
                                         Rectangle {
+                                            id: scSave
                                             width: 180
                                             height: 34
                                             radius: settingsWin.cornerRadius
-                                            color: "#1e1e1e"
-                                            border.color: "#333333"
+                                            color: palette.btnBg
+                                            border.color: palette.borderStrong
                                             border.width: 1
 
                                             MouseArea {
                                                 anchors.fill: parent
                                                 hoverEnabled: true
                                                 onClicked: capturePopup.openFor("save", settingsStore ? settingsStore.shortcutSave : settingsWin.defaultShortcutSave)
-                                                onEntered: parent.color = "#222222"
-                                                onExited: parent.color = "#1e1e1e"
+                                                onEntered: hoverIn(scSave)
+                                                onExited: hoverOut(scSave)
                                             }
 
                                             Label {
                                                 anchors.centerIn: parent
                                                 text: settingsStore ? settingsStore.shortcutSave : settingsWin.defaultShortcutSave
-                                                color: "#eeeeee"
+                                                color: palette.text
                                                 font.pixelSize: 13
                                             }
                                         }
@@ -330,8 +340,8 @@ ApplicationWindow {
                                     Layout.fillWidth: true
                                     height: 60
                                     radius: 10
-                                    color: "#111111"
-                                    border.color: "#333333"
+                                    color: palette.surface2
+                                    border.color: palette.editorBorder
                                     border.width: 1
 
                                     RowLayout {
@@ -339,29 +349,30 @@ ApplicationWindow {
                                         anchors.margins: 14
                                         spacing: 12
 
-                                        Label { text: "Save As"; color: "#dddddd"; font.pixelSize: 13 }
+                                        Label { text: "Save As"; color: palette.textSoft; font.pixelSize: 13 }
                                         Item { Layout.fillWidth: true }
 
                                         Rectangle {
+                                            id: scSaveAs
                                             width: 180
                                             height: 34
                                             radius: settingsWin.cornerRadius
-                                            color: "#1e1e1e"
-                                            border.color: "#333333"
+                                            color: palette.btnBg
+                                            border.color: palette.borderStrong
                                             border.width: 1
 
                                             MouseArea {
                                                 anchors.fill: parent
                                                 hoverEnabled: true
                                                 onClicked: capturePopup.openFor("saveAs", settingsStore ? settingsStore.shortcutSaveAs : settingsWin.defaultShortcutSaveAs)
-                                                onEntered: parent.color = "#222222"
-                                                onExited: parent.color = "#1e1e1e"
+                                                onEntered: hoverIn(scSaveAs)
+                                                onExited: hoverOut(scSaveAs)
                                             }
 
                                             Label {
                                                 anchors.centerIn: parent
                                                 text: settingsStore ? settingsStore.shortcutSaveAs : settingsWin.defaultShortcutSaveAs
-                                                color: "#eeeeee"
+                                                color: palette.text
                                                 font.pixelSize: 13
                                             }
                                         }
@@ -372,13 +383,108 @@ ApplicationWindow {
                             }
                         }
 
-                        // ===== Page 2: Placeholder =====
+                        // ===== Page 2: Look =====
                         Item {
-                            Label {
-                                anchors.centerIn: parent
-                                text: "Placeholder"
-                                color: "#777777"
-                                font.pixelSize: 16
+                            ColumnLayout {
+                                anchors.fill: parent
+                                spacing: 16
+
+                                Label {
+                                    text: "Look"
+                                    color: palette.text
+                                    font.pixelSize: 18
+                                }
+
+                                Rectangle {
+                                    id: themePill
+                                    Layout.fillWidth: true
+                                    height: 54
+                                    radius: settingsWin.cornerRadius
+                                    color: palette.surface2
+                                    border.color: palette.editorBorder
+                                    border.width: 1
+
+                                    property int segmentCount: 3
+                                    property real pad: settingsWin.cornerRadius
+                                    property real segW: (width - pad*2) / segmentCount
+                                    property real thumbX: pad + selected * segW
+
+                                    property int selected: (settingsStore && settingsStore.theme === "White") ? 1
+                                                         : (settingsStore && settingsStore.theme === "Purple") ? 2
+                                                         : 0
+
+                                    Rectangle {
+                                        anchors.fill: parent
+                                        anchors.margins: themePill.pad
+                                        radius: (themePill.height - themePill.pad*2) / 2
+                                        color: palette.chromeBg
+                                    }
+
+                                    Rectangle {
+                                        id: thumb
+                                        x: themePill.thumbX
+                                        y: themePill.pad + 2
+                                        width: themePill.segW
+                                        height: themePill.height - (themePill.pad + 2) * 2
+                                        radius: height / 2
+                                        color: palette.cardBg
+                                        border.color: palette.borderStrong
+                                        border.width: 1
+
+                                        Behavior on x { NumberAnimation { duration: 240; easing.type: Easing.OutCubic } }
+                                    }
+
+                                    Row {
+                                        anchors.fill: parent
+                                        anchors.margins: themePill.pad
+                                        spacing: 0
+
+                                        function labelColor(i) {
+                                            return (themePill.selected === i) ? palette.text : palette.textMuted
+                                        }
+
+                                        Item {
+                                            width: themePill.segW
+                                            height: parent.height
+                                            MouseArea {
+                                                anchors.fill: parent
+                                                onClicked: {
+                                                    themePill.selected = 0
+                                                    if (settingsStore) settingsStore.theme = "Dark"
+                                                }
+                                            }
+                                            Text { anchors.centerIn: parent; text: "Dark"; color: parent.parent.labelColor(0); font.pixelSize: 13 }
+                                        }
+
+                                        Item {
+                                            width: themePill.segW
+                                            height: parent.height
+                                            MouseArea {
+                                                anchors.fill: parent
+                                                onClicked: {
+                                                    themePill.selected = 1
+                                                    if (settingsStore) settingsStore.theme = "White"
+                                                }
+                                            }
+                                            Text { anchors.centerIn: parent; text: "White"; color: parent.parent.labelColor(1); font.pixelSize: 13 }
+                                        }
+
+                                        Item {
+                                            width: themePill.segW
+                                            height: parent.height
+                                            MouseArea {
+                                                anchors.fill: parent
+                                                onClicked: {
+                                                    themePill.selected = 2
+                                                    if (settingsStore) settingsStore.theme = "Purple"
+                                                }
+                                            }
+                                            Text { anchors.centerIn: parent; text: "Purple"; color: parent.parent.labelColor(2); font.pixelSize: 13 }
+                                        }
+                                    }
+                                }
+
+                                Item { Layout.fillHeight: true }
                             }
                         }
                     }
@@ -396,60 +502,16 @@ ApplicationWindow {
 
         width: 360
         height: 190
-
-        // center in the window overlay
         anchors.centerIn: Overlay.overlay
 
         property string actionKey: ""
         property string captured: ""
-        
-        function keyName(key, text) {
-            // Prefer text when it's a normal printable letter/number
-            if (text && text.length === 1) return text.toUpperCase()
 
-            // Letters
-            if (key >= Qt.Key_A && key <= Qt.Key_Z)
-                return String.fromCharCode("A".charCodeAt(0) + (key - Qt.Key_A))
-
-            // Numbers (top row)
-            if (key >= Qt.Key_0 && key <= Qt.Key_9)
-                return String.fromCharCode("0".charCodeAt(0) + (key - Qt.Key_0))
-
-            // Function keys
-            if (key >= Qt.Key_F1 && key <= Qt.Key_F35)
-                return "F" + (key - Qt.Key_F1 + 1)
-
-            // Common named keys
-            if (key === Qt.Key_Tab) return "Tab"
-            if (key === Qt.Key_Space) return "Space"
-            if (key === Qt.Key_Return || key === Qt.Key_Enter) return "Enter"
-            if (key === Qt.Key_Backspace) return "Backspace"
-            if (key === Qt.Key_Delete) return "Del"
-            if (key === Qt.Key_Escape) return "Esc"
-            if (key === Qt.Key_Left) return "Left"
-            if (key === Qt.Key_Right) return "Right"
-            if (key === Qt.Key_Up) return "Up"
-            if (key === Qt.Key_Down) return "Down"
-            if (key === Qt.Key_Home) return "Home"
-            if (key === Qt.Key_End) return "End"
-            if (key === Qt.Key_PageUp) return "PgUp"
-            if (key === Qt.Key_PageDown) return "PgDn"
-            if (key === Qt.Key_Insert) return "Ins"
-
-            // If we don't know, don't show a garbage number
-            return ""
-        }
-
-        function isSingleTypeableKey(s) {
-            // single character like A, 1, ., / etc.
-            return s && s.length === 1
-        }
-
+        function isSingleTypeableKey(s) { return s && s.length === 1 }
         function partsCount(s) {
             if (!s) return 0
             return s.split("+").filter(p => p.length > 0).length
         }
-
         function hasModifier(s) {
             if (!s) return false
             return s.indexOf("Ctrl+") === 0
@@ -461,23 +523,12 @@ ApplicationWindow {
                 || s.indexOf("+Shift+") !== -1
                 || s.indexOf("+Meta+") !== -1
         }
-
         function isValidShortcut(s) {
             s = settingsWin.norm(s)
-
-            // must be at least 2 parts: e.g. Ctrl+N, Ctrl+Shift+S
             if (partsCount(s) < 2) return false
-
-            // last token is the “key”
             const tokens = s.split("+")
             const key = tokens[tokens.length - 1]
-
-            // reject if it's just a single typeable character as the "key" with no modifier
             if (!hasModifier(s) && isSingleTypeableKey(key)) return false
-
-            // also reject if key is a single letter/number even WITH no modifier (covered above)
-            // (with modifier it's fine: Ctrl+S is okay)
-
             return true
         }
 
@@ -491,7 +542,6 @@ ApplicationWindow {
         function applyToStore(action, value) {
             if (!settingsStore) return
             const v = settingsWin.norm(value)
-
             if (action === "new") settingsStore.shortcutNew = v
             else if (action === "open") settingsStore.shortcutOpen = v
             else if (action === "save") settingsStore.shortcutSave = v
@@ -500,8 +550,8 @@ ApplicationWindow {
 
         background: Rectangle {
             radius: settingsWin.cornerRadius
-            color: "#161616"
-            border.color: "#2a2a2a"
+            color: palette.cardBg
+            border.color: palette.border
             border.width: 1
         }
 
@@ -512,7 +562,7 @@ ApplicationWindow {
 
             Label {
                 text: "Press a shortcut"
-                color: "#eeeeee"
+                color: palette.text
                 font.pixelSize: 16
             }
 
@@ -520,8 +570,8 @@ ApplicationWindow {
                 Layout.fillWidth: true
                 height: 54
                 radius: settingsWin.cornerRadius
-                color: "#111111"
-                border.color: "#333333"
+                color: palette.surface2
+                border.color: palette.editorBorder
                 border.width: 1
 
                 Item {
@@ -530,7 +580,6 @@ ApplicationWindow {
                     focus: true
 
                     Keys.onPressed: (event) => {
-                        // ignore pure modifier taps
                         if (event.key === Qt.Key_Control ||
                             event.key === Qt.Key_Shift ||
                             event.key === Qt.Key_Alt ||
@@ -539,14 +588,12 @@ ApplicationWindow {
                             return
                         }
 
-                        // Escape closes without applying
                         if (event.key === Qt.Key_Escape) {
                             event.accepted = true
                             capturePopup.close()
                             return
                         }
 
-                        // Backspace clears
                         if (event.key === Qt.Key_Backspace) {
                             event.accepted = true
                             capturePopup.captured = ""
@@ -559,44 +606,25 @@ ApplicationWindow {
                         if (event.modifiers & Qt.AltModifier)     parts.push("Alt")
                         if (event.modifiers & Qt.MetaModifier)    parts.push("Meta")
 
-                        // ----- KEY NAME RESOLUTION -----
                         let k = ""
-
-                        // Letters A–Z
                         if (event.key >= Qt.Key_A && event.key <= Qt.Key_Z) {
-                            k = String.fromCharCode(
-                                "A".charCodeAt(0) + (event.key - Qt.Key_A)
-                            )
-                        }
-                        // Numbers 0–9
-                        else if (event.key >= Qt.Key_0 && event.key <= Qt.Key_9) {
-                            k = String.fromCharCode(
-                                "0".charCodeAt(0) + (event.key - Qt.Key_0)
-                            )
-                        }
-                        // Function keys
-                        else if (event.key >= Qt.Key_F1 && event.key <= Qt.Key_F35) {
+                            k = String.fromCharCode("A".charCodeAt(0) + (event.key - Qt.Key_A))
+                        } else if (event.key >= Qt.Key_0 && event.key <= Qt.Key_9) {
+                            k = String.fromCharCode("0".charCodeAt(0) + (event.key - Qt.Key_0))
+                        } else if (event.key >= Qt.Key_F1 && event.key <= Qt.Key_F35) {
                             k = "F" + (event.key - Qt.Key_F1 + 1)
-                        }
-                        // Named keys
-                        else if (event.key === Qt.Key_Tab)        k = "Tab"
-                        else if (event.key === Qt.Key_Space)      k = "Space"
-                        else if (event.key === Qt.Key_Return ||
-                                event.key === Qt.Key_Enter)      k = "Enter"
-                        else if (event.key === Qt.Key_Delete)     k = "Del"
-                        else if (event.key === Qt.Key_Escape)     k = "Esc"
-                        else if (event.key === Qt.Key_Left)       k = "Left"
-                        else if (event.key === Qt.Key_Right)      k = "Right"
-                        else if (event.key === Qt.Key_Up)         k = "Up"
-                        else if (event.key === Qt.Key_Down)       k = "Down"
-                        else if (event.text && event.text.length === 1) {
-                            // fallback for printable characters
-                            k = event.text.toUpperCase()
-                        }
+                        } else if (event.key === Qt.Key_Tab)        k = "Tab"
+                        else if (event.key === Qt.Key_Space)        k = "Space"
+                        else if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) k = "Enter"
+                        else if (event.key === Qt.Key_Delete)       k = "Del"
+                        else if (event.key === Qt.Key_Escape)       k = "Esc"
+                        else if (event.key === Qt.Key_Left)         k = "Left"
+                        else if (event.key === Qt.Key_Right)        k = "Right"
+                        else if (event.key === Qt.Key_Up)           k = "Up"
+                        else if (event.key === Qt.Key_Down)         k = "Down"
+                        else if (event.text && event.text.length === 1) k = event.text.toUpperCase()
 
-                        if (k.length > 0)
-                            parts.push(k)
-
+                        if (k.length > 0) parts.push(k)
                         capturePopup.captured = parts.join("+")
                         event.accepted = true
                     }
@@ -604,7 +632,7 @@ ApplicationWindow {
                     Label {
                         anchors.centerIn: parent
                         text: capturePopup.captured.length ? capturePopup.captured : "Press keys…"
-                        color: capturePopup.captured.length ? "#eeeeee" : "#777777"
+                        color: capturePopup.captured.length ? palette.text : palette.textMuted
                         font.pixelSize: 14
                     }
                 }
@@ -616,33 +644,33 @@ ApplicationWindow {
 
                 Item { Layout.fillWidth: true }
 
-                // Cancel
                 Rectangle {
+                    id: cancelBtn
                     width: 96
                     height: 34
                     radius: settingsWin.cornerRadius
-                    color: "#2a2a2a"
-                    border.color: "#333333"
+                    color: palette.btnBg
+                    border.color: palette.borderStrong
                     border.width: 1
 
                     MouseArea {
                         anchors.fill: parent
                         hoverEnabled: true
                         onClicked: capturePopup.close()
-                        onEntered: parent.color = "#333333"
-                        onExited: parent.color = "#2a2a2a"
+                        onEntered: cancelBtn.color = palette.btnHover
+                        onExited: cancelBtn.color = palette.btnBg
                     }
 
-                    Label { anchors.centerIn: parent; text: "Cancel"; color: "#dddddd"; font.pixelSize: 13 }
+                    Label { anchors.centerIn: parent; text: "Cancel"; color: palette.textSoft; font.pixelSize: 13 }
                 }
 
-                // Apply
                 Rectangle {
+                    id: applyBtn
                     width: 96
                     height: 34
                     radius: settingsWin.cornerRadius
-                    color: "#2a2a2a"
-                    border.color: "#333333"
+                    color: palette.btnBg
+                    border.color: palette.borderStrong
                     border.width: 1
 
                     MouseArea {
@@ -654,11 +682,11 @@ ApplicationWindow {
                             capturePopup.applyToStore(capturePopup.actionKey, capturePopup.captured)
                             capturePopup.close()
                         }
-                        onEntered: parent.color = "#333333"
-                        onExited: parent.color = "#2a2a2a"
+                        onEntered: applyBtn.color = palette.btnHover
+                        onExited: applyBtn.color = palette.btnBg
                     }
 
-                    Label { anchors.centerIn: parent; text: "Apply"; color: "#dddddd"; font.pixelSize: 13 }
+                    Label { anchors.centerIn: parent; text: "Apply"; color: palette.textSoft; font.pixelSize: 13 }
                 }
 
                 Label {
