@@ -49,9 +49,9 @@ function get(name) {
         border: "#352747",
         borderStrong: "#4a3566",
 
-        text: "#f8f4ff",
-        textSoft: "#e1d9ff",
-        textMuted: "#c2b0ff",
+        text: "#ffffff",
+        textSoft: "#f0f0f0",
+        textMuted: "#d9d9d9",
 
         btnBg: "#2a1f38",
         btnHover: "#352747",
@@ -77,9 +77,9 @@ function get(name) {
         border: "#2a2a2a",
         borderStrong: "#333333",
 
-        text: "#f2f2f2",
-        textSoft: "#d6d6d6",
-        textMuted: "#9a9a9a",
+        text: "#ffffff",
+        textSoft: "#f0f0f0",
+        textMuted: "#d9d9d9",
 
         btnBg: "#2a2a2a",
         btnHover: "#333333",
