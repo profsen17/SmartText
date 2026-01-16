@@ -26,6 +26,7 @@ class AppController(QObject):
         self._session = SessionStore()
         self._current_index = 0
         self._status_message = "Ready"
+        self._reset_session_on_exit = False
 
         restored = self._session.load()
 
@@ -192,6 +193,7 @@ class AppController(QObject):
     @Slot(int)
     def close_tab(self, index: int) -> None:
         if len(self._tabs.docs()) <= 1:
+            self._reset_session_on_exit = True
             QCoreApplication.quit()
             return
 
@@ -217,4 +219,7 @@ class AppController(QObject):
 
 
     def save_session(self) -> None:
+        if self._reset_session_on_exit:
+            self._session.save([Document()], 0)
+            return
         self._session.save(self._tabs.docs(), self._current_index)
