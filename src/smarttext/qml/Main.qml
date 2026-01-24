@@ -2,6 +2,7 @@ import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.15
 import QtQuick.Dialogs 6.5
+import QtGraphicalEffects 1.15
 import "components"
 
 ApplicationWindow {
@@ -204,16 +205,36 @@ ApplicationWindow {
                     }
                 }
 
-                Rectangle {
+                Item {
                     id: controlsShade
                     anchors.top: parent.top
                     anchors.bottom: parent.bottom
                     anchors.right: parent.right
                     width: tabsBar.windowControlsWidth
-                    color: "#141414"
-                    opacity: tabsBar.tabsOverflowing ? 1 : 0
                     visible: tabsBar.tabsOverflowing
                     z: 2
+
+                    Rectangle {
+                        id: shadeFill
+                        anchors.fill: parent
+                        color: "#141414"
+                        opacity: 0.9
+                    }
+
+                    ShaderEffectSource {
+                        id: shadeSource
+                        anchors.fill: parent
+                        sourceItem: shadeFill
+                        hideSource: true
+                        live: true
+                    }
+
+                    GaussianBlur {
+                        anchors.fill: parent
+                        source: shadeSource
+                        radius: 12
+                        samples: 25
+                    }
                 }
 
                 RowLayout {
