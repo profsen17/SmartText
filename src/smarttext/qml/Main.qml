@@ -77,20 +77,13 @@ ApplicationWindow {
             anchors.margins: 10
             spacing: 8
 
-            TitleBar {
-                Layout.fillWidth: true
-                window: win
-                cornerRadius: win.cornerRadius
-                titleText: appSafe
-                    ? (appSafe.documentTitle + (appSafe.modified ? " •" : ""))
-                    : "SmartText"
-            }
-
             // ---- Tabs strip ----
             Item {
                 id: tabsBar
                 Layout.fillWidth: true
                 height: 44
+                property real windowControlsWidth: windowControls.implicitWidth + 12
+                property bool tabsOverflowing: tabsView.contentWidth > tabsView.width
 
                 Rectangle {
                     anchors.fill: parent
@@ -100,13 +93,31 @@ ApplicationWindow {
                     border.width: 1
                 }
 
+                MouseArea {
+                    anchors.fill: parent
+                    acceptedButtons: Qt.LeftButton
+                    onPressed: {
+                        if (win && win.startSystemMove) win.startSystemMove()
+                    }
+                    onDoubleClicked: {
+                        if (!win) return
+                        if (win.visibility === Window.Maximized) win.showNormal()
+                        else win.showMaximized()
+                    }
+                    z: 0
+                }
+
                 ListView {
                     id: tabsView
                     anchors.fill: parent
-                    anchors.margins: 6
+                    anchors.leftMargin: 6
+                    anchors.rightMargin: 6 + tabsBar.windowControlsWidth
+                    anchors.topMargin: 6
+                    anchors.bottomMargin: 6
                     orientation: ListView.Horizontal
                     spacing: 8
                     clip: true
+                    z: 1
 
                     model: appSafe ? appSafe.tabsModel : null
                     currentIndex: appSafe ? appSafe.currentIndex : 0
@@ -192,6 +203,134 @@ ApplicationWindow {
                         }
                     }
                 }
+
+                Rectangle {
+                    id: controlsShade
+                    anchors.top: parent.top
+                    anchors.bottom: parent.bottom
+                    anchors.right: parent.right
+                    width: tabsBar.windowControlsWidth
+                    color: "#141414"
+                    opacity: tabsBar.tabsOverflowing ? 1 : 0
+                    visible: tabsBar.tabsOverflowing
+                    z: 2
+                }
+
+                RowLayout {
+                    id: windowControls
+                    anchors.right: parent.right
+                    anchors.verticalCenter: parent.verticalCenter
+                    anchors.rightMargin: 6
+                    spacing: 6
+                    z: 3
+
+                    ToolButton {
+                        id: minBtn
+                        Layout.preferredWidth: 28
+                        Layout.preferredHeight: 28
+                        hoverEnabled: true
+                        onClicked: if (win) win.showMinimized()
+
+                        background: Rectangle {
+                            anchors.fill: parent
+                            radius: 8
+                            color: minBtn.hovered ? "#3a3a3a" : "#2a2a2a"
+                        }
+
+                        contentItem: Item {
+                            width: 12
+                            height: 12
+                            anchors.centerIn: parent
+                            Rectangle { anchors.centerIn: parent; width: 12; height: 2; radius: 1; color: "#dddddd" }
+                        }
+                    }
+
+                    ToolButton {
+                        id: maxBtn
+                        Layout.preferredWidth: 28
+                        Layout.preferredHeight: 28
+                        hoverEnabled: true
+                        onClicked: {
+                            if (!win) return
+                            if (win.visibility === Window.Maximized) win.showNormal()
+                            else win.showMaximized()
+                        }
+
+                        background: Rectangle {
+                            anchors.fill: parent
+                            radius: 8
+                            color: maxBtn.hovered ? "#3a3a3a" : "#2a2a2a"
+                        }
+
+                        contentItem: Item {
+                            width: 12
+                            height: 12
+                            anchors.centerIn: parent
+
+                            Rectangle {
+                                visible: win && win.visibility !== Window.Maximized
+                                anchors.centerIn: parent
+                                width: 10
+                                height: 10
+                                radius: 2
+                                color: "transparent"
+                                border.color: "#dddddd"
+                                border.width: 2
+                            }
+
+                            Item {
+                                visible: win && win.visibility === Window.Maximized
+                                anchors.centerIn: parent
+                                width: 12
+                                height: 12
+
+                                Rectangle {
+                                    x: 3
+                                    y: 0
+                                    width: 8
+                                    height: 8
+                                    radius: 2
+                                    color: "transparent"
+                                    border.color: "#dddddd"
+                                    border.width: 2
+                                }
+
+                                Rectangle {
+                                    x: 0
+                                    y: 3
+                                    width: 8
+                                    height: 8
+                                    radius: 2
+                                    color: "transparent"
+                                    border.color: "#dddddd"
+                                    border.width: 2
+                                }
+                            }
+                        }
+                    }
+
+                    ToolButton {
+                        id: closeBtn
+                        Layout.preferredWidth: 28
+                        Layout.preferredHeight: 28
+                        hoverEnabled: true
+                        onClicked: if (win) win.close()
+
+                        background: Rectangle {
+                            anchors.fill: parent
+                            radius: 8
+                            color: closeBtn.hovered ? "#c0392b" : "#2a2a2a"
+                        }
+
+                        contentItem: Item {
+                            width: 12
+                            height: 12
+                            anchors.centerIn: parent
+                            Rectangle { anchors.centerIn: parent; width: 12; height: 2; radius: 1; color: "#dddddd"; rotation: 45 }
+                            Rectangle { anchors.centerIn: parent; width: 12; height: 2; radius: 1; color: "#dddddd"; rotation: -45 }
+                        }
+                    }
+                }
             }
 
             Item {
@@ -210,7 +349,7 @@ ApplicationWindow {
 
                 property bool hovering: false
                 property bool idleHidden: false
-                property bool showOverlay: hovering && !idleHidden && !win.uiLocked && !hoverFrozen
+                property bool showOverlay: hovering && !idleHidden && !win.uiLocked && !hoverFrozen && !sidebarHovering
 
                 // ---- Left sidebar ----
                 property bool sidebarOpen: false
