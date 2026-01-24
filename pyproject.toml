@@ -13,4 +13,4 @@ smarttext = "smarttext.main:main"
 package-dir = {"" = "src"}
 
 [tool.setuptools.package-data]
-smarttext = ["qml/*.qml"]
+smarttext = ["qml/*.qml", "qml/icons/*"]

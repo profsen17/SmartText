@@ -81,6 +81,24 @@ src/
 
 Issues and PRs are welcome. If you’re making UI changes, please include a screenshot in the PR and describe any UX changes.
 
+## Packaging a Windows EXE
+
+To ship a single-click Windows release, bundle with PyInstaller and include the QML assets and icons.
+
+```bash
+python -m pip install pyinstaller
+pyinstaller ^
+  --onefile ^
+  --windowed ^
+  --name SmartText ^
+  --icon src/smarttext/qml/icons/icon.ico ^
+  --add-data "src/smarttext/qml;smarttext/qml" ^
+  --add-data "src/smarttext/qml/icons;smarttext/qml/icons" ^
+  -m smarttext.main
+```
+
+The built executable will be available at `dist/SmartText.exe`.
+
 ## License
 
 No license has been specified yet.
