@@ -351,6 +351,24 @@ ApplicationWindow {
                     property bool sidebarVisible: false
                     visible: sidebarVisible
                     enabled: opacity > 0.05   // don't steal hover/clicks while "invisible"
+                    property int sidebarButtonSize: 38
+                    property int sidebarButtonSpacing: 10
+                    property int sidebarVisibleSlots: 3
+                    property int sidebarSlotHeight: sidebarButtonSize + sidebarButtonSpacing
+
+                    function triggerSidebarAction(action) {
+                        if (action === "new") {
+                            if (appSafe) appSafe.new_file()
+                        } else if (action === "open") {
+                            openDialog.open()
+                        } else if (action === "save") {
+                            if (appSafe) appSafe.save()
+                        } else if (action === "save_as") {
+                            saveAsDialog.open()
+                        } else if (action === "settings") {
+                            settingsWindow.visible = true
+                        }
+                    }
 
                     states: [
                         State {
@@ -400,69 +418,61 @@ ApplicationWindow {
                         clip: true
                     }
 
-                    MouseArea {
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        acceptedButtons: Qt.NoButton
-
-                        onEntered: {
-                            if (win.uiLocked || editorShell.hoverFrozen) return
-                            editorShell.sidebarHovering = true
-                            editorShell.cancelSidebarClose()
-                        }
-                        onExited: {
+                    HoverHandler {
+                        target: leftSidebar
+                        onHoveredChanged: {
                             if (win.uiLocked) return
-                            editorShell.sidebarHovering = false
-                            editorShell.scheduleSidebarClose()
+                            if (hovered) {
+                                if (editorShell.hoverFrozen) return
+                                editorShell.sidebarHovering = true
+                                editorShell.sidebarOpen = true
+                                editorShell.cancelSidebarClose()
+                            } else {
+                                editorShell.sidebarHovering = false
+                                editorShell.scheduleSidebarClose()
+                            }
                         }
                     }
 
-                    ScrollView {
+                    Item {
                         anchors.fill: parent
                         anchors.margins: editorShell.sidebarPad
                         clip: true
 
-                        ScrollBar.vertical.policy: ScrollBar.AlwaysOff
-                        ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
-
-                        Column {
+                        PathView {
+                            id: sidebarCarousel
                             width: parent.width
-                            spacing: 10
-
-                            CircleIconButton {
-                                size: 38
-                                tooltipText: "New"
-                                iconSource: "../icons/new.svg"
-                                onClicked: if (appSafe) appSafe.new_file()
+                            height: leftSidebar.sidebarSlotHeight * leftSidebar.sidebarVisibleSlots
+                            anchors.centerIn: parent
+                            model: ListModel {
+                                ListElement { label: "New"; icon: "../icons/new.svg"; action: "new" }
+                                ListElement { label: "Open"; icon: "../icons/open.svg"; action: "open" }
+                                ListElement { label: "Save"; icon: "../icons/save.svg"; action: "save" }
+                                ListElement { label: "Save As"; icon: "../icons/save_as.svg"; action: "save_as" }
+                                ListElement { label: "Settings"; icon: "../icons/settings.svg"; action: "settings" }
                             }
-
-                            CircleIconButton {
-                                size: 38
-                                tooltipText: "Open"
-                                iconSource: "../icons/open.svg"
-                                onClicked: openDialog.open()
+                            delegate: CircleIconButton {
+                                size: leftSidebar.sidebarButtonSize
+                                tooltipText: model.label
+                                iconSource: model.icon
+                                enabled: model.action === "save" ? (appSafe ? appSafe.modified : false) : true
+                                onClicked: leftSidebar.triggerSidebarAction(model.action)
                             }
-
-                            CircleIconButton {
-                                size: 38
-                                tooltipText: "Save"
-                                iconSource: "../icons/save.svg"
-                                enabled: appSafe ? appSafe.modified : false
-                                onClicked: if (appSafe) appSafe.save()
-                            }
-
-                            CircleIconButton {
-                                size: 38
-                                tooltipText: "Save As"
-                                iconSource: "../icons/save_as.svg"
-                                onClicked: saveAsDialog.open()
-                            }
-
-                            CircleIconButton {
-                                size: 38
-                                tooltipText: "Settings"
-                                iconSource: "../icons/settings.svg"
-                                onClicked: settingsWindow.visible = true
+                            pathItemCount: leftSidebar.sidebarVisibleSlots
+                            preferredHighlightBegin: height / 2
+                            preferredHighlightEnd: height / 2
+                            highlightRangeMode: PathView.StrictlyEnforceRange
+                            snapMode: PathView.SnapToItem
+                            flickDeceleration: 2000
+                            wrap: true
+                            interactive: true
+                            path: Path {
+                                startX: sidebarCarousel.width / 2
+                                startY: -leftSidebar.sidebarSlotHeight
+                                PathLine {
+                                    x: sidebarCarousel.width / 2
+                                    y: sidebarCarousel.height + leftSidebar.sidebarSlotHeight
+                                }
                             }
                         }
                     }
