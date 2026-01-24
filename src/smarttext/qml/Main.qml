@@ -210,7 +210,7 @@ ApplicationWindow {
 
                 property bool hovering: false
                 property bool idleHidden: false
-                property bool showOverlay: hovering && !idleHidden && !win.uiLocked && !hoverFrozen
+                property bool showOverlay: hovering && !idleHidden && !win.uiLocked && !hoverFrozen && !sidebarHovering
 
                 // ---- Left sidebar ----
                 property bool sidebarOpen: false
