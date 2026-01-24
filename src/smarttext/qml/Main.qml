@@ -2,7 +2,7 @@ import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.15
 import QtQuick.Dialogs 6.5
-import QtGraphicalEffects 1.15
+import QtQuick.Effects
 import "components"
 
 ApplicationWindow {
@@ -206,149 +206,125 @@ ApplicationWindow {
                 }
 
                 Item {
-                    id: controlsShade
-                    anchors.top: parent.top
-                    anchors.bottom: parent.bottom
-                    anchors.right: parent.right
-                    width: tabsBar.windowControlsWidth
-                    visible: tabsBar.tabsOverflowing
-                    z: 2
-
-                    Rectangle {
-                        id: shadeFill
-                        anchors.fill: parent
-                        color: "#141414"
-                        opacity: 0.9
-                    }
-
-                    ShaderEffectSource {
-                        id: shadeSource
-                        anchors.fill: parent
-                        sourceItem: shadeFill
-                        hideSource: true
-                        live: true
-                    }
-
-                    GaussianBlur {
-                        anchors.fill: parent
-                        source: shadeSource
-                        radius: 12
-                        samples: 25
-                    }
-                }
-
-                RowLayout {
-                    id: windowControls
+                    id: windowControlsWrap
                     anchors.right: parent.right
                     anchors.verticalCenter: parent.verticalCenter
                     anchors.rightMargin: 6
-                    spacing: 6
+                    width: windowControls.implicitWidth
+                    height: windowControls.implicitHeight
                     z: 3
 
-                    ToolButton {
-                        id: minBtn
-                        Layout.preferredWidth: 28
-                        Layout.preferredHeight: 28
-                        hoverEnabled: true
-                        onClicked: if (win) win.showMinimized()
+                    RowLayout {
+                        id: windowControls
+                        anchors.fill: parent
+                        spacing: 6
+                        z: 3
 
-                        background: Rectangle {
-                            anchors.fill: parent
-                            radius: 8
-                            color: minBtn.hovered ? "#3a3a3a" : "#2a2a2a"
-                        }
+                        ToolButton {
+                            id: minBtn
+                            Layout.preferredWidth: 28
+                            Layout.preferredHeight: 28
+                            hoverEnabled: true
+                            onClicked: if (win) win.showMinimized()
 
-                        contentItem: Item {
-                            width: 12
-                            height: 12
-                            anchors.centerIn: parent
-                            Rectangle { anchors.centerIn: parent; width: 12; height: 2; radius: 1; color: "#dddddd" }
-                        }
-                    }
-
-                    ToolButton {
-                        id: maxBtn
-                        Layout.preferredWidth: 28
-                        Layout.preferredHeight: 28
-                        hoverEnabled: true
-                        onClicked: {
-                            if (!win) return
-                            if (win.visibility === Window.Maximized) win.showNormal()
-                            else win.showMaximized()
-                        }
-
-                        background: Rectangle {
-                            anchors.fill: parent
-                            radius: 8
-                            color: maxBtn.hovered ? "#3a3a3a" : "#2a2a2a"
-                        }
-
-                        contentItem: Item {
-                            width: 12
-                            height: 12
-                            anchors.centerIn: parent
-
-                            Rectangle {
-                                visible: win && win.visibility !== Window.Maximized
-                                anchors.centerIn: parent
-                                width: 10
-                                height: 10
-                                radius: 2
-                                color: "transparent"
-                                border.color: "#dddddd"
-                                border.width: 2
+                            background: Rectangle {
+                                anchors.fill: parent
+                                radius: 8
+                                color: minBtn.hovered ? "#3a3a3a" : "#2a2a2a"
                             }
 
-                            Item {
-                                visible: win && win.visibility === Window.Maximized
-                                anchors.centerIn: parent
+                            contentItem: Item {
                                 width: 12
                                 height: 12
+                                anchors.centerIn: parent
+                                Rectangle { anchors.centerIn: parent; width: 12; height: 2; radius: 1; color: "#dddddd" }
+                            }
+                        }
+
+                        ToolButton {
+                            id: maxBtn
+                            Layout.preferredWidth: 28
+                            Layout.preferredHeight: 28
+                            hoverEnabled: true
+                            onClicked: {
+                                if (!win) return
+                                if (win.visibility === Window.Maximized) win.showNormal()
+                                else win.showMaximized()
+                            }
+
+                            background: Rectangle {
+                                anchors.fill: parent
+                                radius: 8
+                                color: maxBtn.hovered ? "#3a3a3a" : "#2a2a2a"
+                            }
+
+                            contentItem: Item {
+                                width: 12
+                                height: 12
+                                anchors.centerIn: parent
 
                                 Rectangle {
-                                    x: 3
-                                    y: 0
-                                    width: 8
-                                    height: 8
+                                    visible: win && win.visibility !== Window.Maximized
+                                    anchors.centerIn: parent
+                                    width: 10
+                                    height: 10
                                     radius: 2
                                     color: "transparent"
                                     border.color: "#dddddd"
                                     border.width: 2
                                 }
 
-                                Rectangle {
-                                    x: 0
-                                    y: 3
-                                    width: 8
-                                    height: 8
-                                    radius: 2
-                                    color: "transparent"
-                                    border.color: "#dddddd"
-                                    border.width: 2
+                                Item {
+                                    visible: win && win.visibility === Window.Maximized
+                                    anchors.centerIn: parent
+                                    width: 12
+                                    height: 12
+
+                                    Rectangle {
+                                        x: 3
+                                        y: 0
+                                        width: 8
+                                        height: 8
+                                        radius: 2
+                                        color: "transparent"
+                                        border.color: "#dddddd"
+                                        border.width: 2
+                                    }
+
+                                    Rectangle {
+                                        x: 0
+                                        y: 3
+                                        width: 8
+                                        height: 8
+                                        radius: 2
+                                        color: "transparent"
+                                        border.color: "#dddddd"
+                                        border.width: 2
+                                    }
                                 }
                             }
                         }
-                    }
 
-                    ToolButton {
-                        id: closeBtn
-                        Layout.preferredWidth: 28
-                        Layout.preferredHeight: 28
-                        hoverEnabled: true
-                        onClicked: if (win) win.close()
+                        ToolButton {
+                            id: closeBtn
+                            Layout.preferredWidth: 28
+                            Layout.preferredHeight: 28
+                            hoverEnabled: true
+                            onClicked: if (win) win.close()
 
-                        background: Rectangle {
-                            anchors.fill: parent
-                            radius: 8
-                            color: closeBtn.hovered ? "#c0392b" : "#2a2a2a"
-                        }
+                            background: Rectangle {
+                                anchors.fill: parent
+                                radius: 8
+                                color: closeBtn.hovered ? "#c0392b" : "#2a2a2a"
+                            }
 
-                        contentItem: Item {
-                            width: 12
-                            height: 12
-                            anchors.centerIn: parent
-                            Rectangle { anchors.centerIn: parent; width: 12; height: 2; radius: 1; color: "#dddddd"; rotation: 45 }
-                            Rectangle { anchors.centerIn: parent; width: 12; height: 2; radius: 1; color: "#dddddd"; rotation: -45 }
+                            contentItem: Item {
+                                width: 12
+                                height: 12
+                                anchors.centerIn: parent
+                                Rectangle { anchors.centerIn: parent; width: 12; height: 2; radius: 1; color: "#dddddd"; rotation: 45 }
+                                Rectangle { anchors.centerIn: parent; width: 12; height: 2; radius: 1; color: "#dddddd"; rotation: -45 }
+                            }
                         }
                     }
                 }
