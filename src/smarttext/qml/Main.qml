@@ -400,20 +400,19 @@ ApplicationWindow {
                         clip: true
                     }
 
-                    MouseArea {
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        acceptedButtons: Qt.NoButton
-
-                        onEntered: {
-                            if (win.uiLocked || editorShell.hoverFrozen) return
-                            editorShell.sidebarHovering = true
-                            editorShell.cancelSidebarClose()
-                        }
-                        onExited: {
+                    HoverHandler {
+                        target: leftSidebar
+                        onHoveredChanged: {
                             if (win.uiLocked) return
-                            editorShell.sidebarHovering = false
-                            editorShell.scheduleSidebarClose()
+                            if (hovered) {
+                                if (editorShell.hoverFrozen) return
+                                editorShell.sidebarHovering = true
+                                editorShell.sidebarOpen = true
+                                editorShell.cancelSidebarClose()
+                            } else {
+                                editorShell.sidebarHovering = false
+                                editorShell.scheduleSidebarClose()
+                            }
                         }
                     }
 
