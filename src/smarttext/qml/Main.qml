@@ -73,6 +73,87 @@ ApplicationWindow {
         color: "#1e1e1e"
         clip: true
 
+        // --- Top hover drag handle (stable, no flicker) ---
+        Item {
+            id: topHandleLayer
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.top: parent.top
+
+            // Make the hot zone tall enough so when the handle drops down,
+            // the mouse is still "inside" the zone (prevents hover handoff flicker).
+            height: 32
+            z: 9999
+
+            property int handleW: 120
+            property int handleH: 10
+            property int handleDrop: 14
+            property real targetCenterX: width / 2
+
+            function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+
+            // IMPORTANT: include handle hover in "showing"
+            property bool showing: (hotZone.containsMouse || handleArea.containsMouse || handleArea.pressed) && !win.uiLocked
+
+            MouseArea {
+                id: hotZone
+                anchors.fill: parent
+                hoverEnabled: true
+                acceptedButtons: Qt.NoButton
+
+                onPositionChanged: (m) => {
+                    topHandleLayer.targetCenterX =
+                        topHandleLayer.clamp(m.x,
+                                            topHandleLayer.handleW / 2,
+                                            topHandleLayer.width - topHandleLayer.handleW / 2)
+                }
+                onEntered: (m) => onPositionChanged(m)
+            }
+
+            Rectangle {
+                id: dragHandle
+                width: topHandleLayer.handleW
+                height: topHandleLayer.handleH
+                radius: height / 2
+
+                x: topHandleLayer.targetCenterX - width / 2
+
+                // When hidden, it sits just above the clipped top edge.
+                // When showing, it slides down into view.
+                y: topHandleLayer.showing ? topHandleLayer.handleDrop : -height
+                opacity: topHandleLayer.showing ? 1 : 0
+
+                color: "#2a2a2a"
+                border.color: "#3a3a3a"
+                border.width: 1
+
+                Behavior on y { NumberAnimation { duration: 220; easing.type: Easing.OutCubic } }
+                Behavior on x { NumberAnimation { duration: 140; easing.type: Easing.OutCubic } }
+                Behavior on opacity { NumberAnimation { duration: 160; easing.type: Easing.OutCubic } }
+
+                MouseArea {
+                    id: handleArea
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    acceptedButtons: Qt.LeftButton
+                    cursorShape: Qt.SizeAllCursor
+
+                    // Keep updating center while over the handle too
+                    onPositionChanged: (m) => {
+                        const globalX = dragHandle.x + m.x
+                        topHandleLayer.targetCenterX =
+                            topHandleLayer.clamp(globalX,
+                                                topHandleLayer.handleW / 2,
+                                                topHandleLayer.width - topHandleLayer.handleW / 2)
+                    }
+
+                    onPressed: {
+                        if (win && win.startSystemMove) win.startSystemMove()
+                    }
+                }
+            }
+        }
+
         ColumnLayout {
             anchors.fill: parent
             anchors.margins: 10
