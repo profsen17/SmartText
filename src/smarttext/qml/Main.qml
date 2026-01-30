@@ -66,93 +66,169 @@ ApplicationWindow {
         }
     }
 
-    Rectangle {
-        id: rootBg
-        anchors.fill: parent
-        radius: cornerRadius
-        color: "#1e1e1e"
-        clip: true
+    Item {
+        id: topHandleLayer
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.top: parent.top
+        height: 32
+        z: 999999
 
-        // --- Top hover drag handle (stable, no flicker) ---
-        Item {
-            id: topHandleLayer
-            anchors.left: parent.left
-            anchors.right: parent.right
-            anchors.top: parent.top
+        property int handleW: 160
+        property int handleH: 10
+        property real targetCenterX: width / 2
 
-            // Make the hot zone tall enough so when the handle drops down,
-            // the mouse is still "inside" the zone (prevents hover handoff flicker).
-            height: 32
-            z: 9999
+        // "latch" that survives Wayland/system-move weirdness
+        property bool forceVisible: false
 
-            property int handleW: 120
-            property int handleH: 10
-            property int handleDrop: 14
-            property real targetCenterX: width / 2
+        // becomes true once we see mouse movement again (meaning system move ended)
+        property bool postDragArmed: false
 
-            function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+        function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
 
-            // IMPORTANT: include handle hover in "showing"
-            property bool showing: (hotZone.containsMouse || handleArea.containsMouse || handleArea.pressed) && !win.uiLocked
+        property bool hoveringTop: hotZone.containsMouse || handleArea.containsMouse
+        property bool showing: (hoveringTop || forceVisible) && !win.uiLocked
 
-            MouseArea {
-                id: hotZone
-                anchors.fill: parent
-                hoverEnabled: true
-                acceptedButtons: Qt.NoButton
+        MouseArea {
+            id: hotZone
+            anchors.fill: parent
+            hoverEnabled: true
+            acceptedButtons: Qt.NoButton
 
-                onPositionChanged: (m) => {
-                    topHandleLayer.targetCenterX =
-                        topHandleLayer.clamp(m.x,
-                                            topHandleLayer.handleW / 2,
-                                            topHandleLayer.width - topHandleLayer.handleW / 2)
+            onEntered: {
+                topHandleLayer.targetCenterX =
+                    topHandleLayer.clamp(mouseX,
+                                        topHandleLayer.handleW / 2,
+                                        topHandleLayer.width - topHandleLayer.handleW / 2)
+
+                // If we were in "post-drag armed" state, entering means the move ended
+                // and the user is back interacting with us.
+                if (topHandleLayer.forceVisible)
+                    topHandleLayer.postDragArmed = true
+            }
+
+            onPositionChanged: {
+                topHandleLayer.targetCenterX =
+                    topHandleLayer.clamp(mouseX,
+                                        topHandleLayer.handleW / 2,
+                                        topHandleLayer.width - topHandleLayer.handleW / 2)
+
+                // Seeing position changes again is the reliable "we're back" signal.
+                if (topHandleLayer.forceVisible)
+                    topHandleLayer.postDragArmed = true
+            }
+
+            onExited: {
+                // Only allow hiding AFTER we have seen mouse movement again post-drag.
+                if (topHandleLayer.forceVisible && topHandleLayer.postDragArmed) {
+                    topHandleLayer.forceVisible = false
+                    topHandleLayer.postDragArmed = false
                 }
-                onEntered: (m) => onPositionChanged(m)
+            }
+        }
+
+        Item {
+            id: dragHandle
+            width: topHandleLayer.handleW
+            height: topHandleLayer.handleH + 6
+            x: topHandleLayer.targetCenterX - width / 2
+
+            y: topHandleLayer.showing ? 0 : -height
+            opacity: topHandleLayer.showing ? (handleVisual.over ? 1.0 : 0.9) : 0
+
+            Behavior on opacity { NumberAnimation { duration: 160; easing.type: Easing.OutCubic } }
+            Behavior on y { NumberAnimation { duration: 220; easing.type: Easing.OutCubic } }
+            Behavior on x { NumberAnimation { duration: 140; easing.type: Easing.OutCubic } }
+
+            // Shadow lives behind
+            MultiEffect {
+                anchors.fill: handleVisual
+                source: handleVisual
+                shadowEnabled: true
+                shadowOpacity: 0.35
+                shadowBlur: 0.6
+                shadowVerticalOffset: 2
+                visible: topHandleLayer.showing
             }
 
             Rectangle {
-                id: dragHandle
-                width: topHandleLayer.handleW
-                height: topHandleLayer.handleH
+                id: handleVisual
+                anchors.fill: parent
                 radius: height / 2
 
-                x: topHandleLayer.targetCenterX - width / 2
+                // optional but helps edge quality
+                antialiasing: true
 
-                // When hidden, it sits just above the clipped top edge.
-                // When showing, it slides down into view.
-                y: topHandleLayer.showing ? topHandleLayer.handleDrop : -height
-                opacity: topHandleLayer.showing ? 1 : 0
-
-                color: "#2a2a2a"
-                border.color: "#3a3a3a"
+                gradient: Gradient {
+                    GradientStop { position: 0.0; color: "#343434" }
+                    GradientStop { position: 1.0; color: "#242424" }
+                }
+                border.color: "#4a4a4a"
                 border.width: 1
 
-                Behavior on y { NumberAnimation { duration: 220; easing.type: Easing.OutCubic } }
-                Behavior on x { NumberAnimation { duration: 140; easing.type: Easing.OutCubic } }
-                Behavior on opacity { NumberAnimation { duration: 160; easing.type: Easing.OutCubic } }
+                // states for visuals
+                property bool down: handleArea.pressed
+                property bool over: handleArea.containsMouse || hotZone.containsMouse
+
+                scale: down ? 0.98 : (over ? 1.02 : 1.0)
+                Behavior on scale { NumberAnimation { duration: 120; easing.type: Easing.OutCubic } }
+
+                Rectangle {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    anchors.top: parent.top
+                    width: parent.width * 0.45
+                    height: 2
+                    radius: 1
+                    color: "#5a5a5a"
+                    opacity: 0.6
+                }
+
+                Row {
+                    anchors.centerIn: parent
+                    spacing: 4
+                    opacity: handleVisual.down ? 0.95 : (handleVisual.over ? 0.85 : 0.70)
+                    Behavior on opacity { NumberAnimation { duration: 120 } }
+
+                    Repeater {
+                        model: 7
+                        delegate: Rectangle {
+                            width: 3; height: 3
+                            radius: 1.5
+                            color: "#d0d0d0"
+                            opacity: index % 2 === 0 ? 1.0 : 0.75
+                            antialiasing: true
+                        }
+                    }
+                }
 
                 MouseArea {
                     id: handleArea
                     anchors.fill: parent
                     hoverEnabled: true
                     acceptedButtons: Qt.LeftButton
-                    cursorShape: Qt.SizeAllCursor
-
-                    // Keep updating center while over the handle too
-                    onPositionChanged: (m) => {
-                        const globalX = dragHandle.x + m.x
-                        topHandleLayer.targetCenterX =
-                            topHandleLayer.clamp(globalX,
-                                                topHandleLayer.handleW / 2,
-                                                topHandleLayer.width - topHandleLayer.handleW / 2)
-                    }
+                    cursorShape: pressed ? Qt.ClosedHandCursor : Qt.OpenHandCursor
 
                     onPressed: {
+                        topHandleLayer.forceVisible = true
+                        topHandleLayer.postDragArmed = false
                         if (win && win.startSystemMove) win.startSystemMove()
+                    }
+
+                    onDoubleClicked: {
+                        if (win.visibility === Window.Maximized) win.showNormal()
+                        else win.showMaximized()
                     }
                 }
             }
         }
+    }
+
+    Rectangle {
+        id: rootBg
+        anchors.fill: parent
+        radius: cornerRadius
+        color: "#1e1e1e"
+        clip: true
 
         ColumnLayout {
             anchors.fill: parent
