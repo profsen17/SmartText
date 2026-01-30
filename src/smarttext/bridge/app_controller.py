@@ -9,7 +9,6 @@ from .session_store import SessionStore
 
 
 class AppController(QObject):
-    # UI update signals
     documentTitleChanged = Signal()
     textChanged = Signal()
     modifiedChanged = Signal()
@@ -18,7 +17,6 @@ class AppController(QObject):
 
     # requests to QML
     requestSaveAs = Signal()
-
     def __init__(self) -> None:
         super().__init__()
 
@@ -29,6 +27,7 @@ class AppController(QObject):
         self._reset_session_on_exit = False
 
         restored = self._session.load()
+        self._restored_session = bool(restored)  # <--- add this
 
         if restored:
             docs, index = restored
@@ -37,6 +36,22 @@ class AppController(QObject):
         else:
             self._tabs.add_doc(Document())
             self._current_index = 0
+
+    def _is_pristine_placeholder(self) -> bool:
+        """True if we only have the auto-created Untitled doc and it's untouched."""
+        if self._restored_session:
+            return False
+        docs = self._tabs.docs()
+        if len(docs) != 1:
+            return False
+        d = docs[0]
+        return (d.path is None) and (not d.modified) and (d.text == "")
+
+    def _find_pristine_placeholder_index(self) -> int | None:
+        for i, d in enumerate(self._tabs.docs()):
+            if d.path is None and (not d.modified) and d.text == "":
+                return i
+        return None
 
 
     # -------------------------
@@ -148,7 +163,19 @@ class AppController(QObject):
         except UnicodeDecodeError:
             text = path.read_text(encoding="utf-8", errors="replace")
 
-        self._open_new_tab(Document(text=text, path=path, modified=False))
+        opened_doc = Document(text=text, path=path, modified=False)
+
+        placeholder_i = self._find_pristine_placeholder_index()
+        if placeholder_i is not None:
+            # replace that tab
+            docs = self._tabs.docs()
+            docs[placeholder_i] = opened_doc
+            self._tabs.reset(docs)          # refresh model
+            self.set_current_index(placeholder_i)
+            self._tabs.update_row(placeholder_i)
+        else:
+            self._open_new_tab(opened_doc)
+
         self._set_status(f"Opened: {path.name}")
 
     @Slot()
@@ -213,10 +240,6 @@ class AppController(QObject):
     # -------------------------
     # Session
     # -------------------------
-
-    def _current_doc(self) -> Document:
-        return self._tabs.docs()[self._current_index]
-
 
     def save_session(self) -> None:
         if self._reset_session_on_exit:

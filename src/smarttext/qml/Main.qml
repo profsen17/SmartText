@@ -722,7 +722,7 @@ ApplicationWindow {
                             id: btnSettings
                             tooltipText: "Settings"
                             iconSource: "../icons/settings.svg"
-                            onClicked: settingsWindow.show()
+                            onClicked: settingsWindow.visible = true
                         }
                     }
 
@@ -972,5 +972,5 @@ ApplicationWindow {
         onAccepted: if (appSafe) appSafe.save_as(selectedFile.toString())
     }
 
-    SettingsWindow { id: settingsWindow }
+    SettingsWindow { id: settingsWindow; visible: false }
 }
