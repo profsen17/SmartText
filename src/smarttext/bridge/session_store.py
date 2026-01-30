@@ -30,6 +30,7 @@ class SessionStore(QObject):
                     "path": str(doc.path) if doc.path else None,
                     "text": doc.text,
                     "modified": doc.modified,
+                    "cursorPos": int(getattr(doc, "cursor_pos", 0)),  # ✅ add
                 }
                 for doc in docs
             ],
@@ -53,11 +54,16 @@ class SessionStore(QObject):
         docs: list[Document] = []
 
         for t in data.get("tabs", []):
+            text = t.get("text", "")
+            pos = int(t.get("cursorPos", 0))
+            pos = max(0, min(pos, len(text)))   # ✅ clamp safely
+
             docs.append(
                 Document(
-                    text=t.get("text", ""),
+                    text=text,
                     path=Path(t["path"]) if t.get("path") else None,
                     modified=bool(t.get("modified", False)),
+                    cursor_pos=pos,
                 )
             )
 

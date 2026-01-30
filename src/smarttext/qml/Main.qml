@@ -49,6 +49,21 @@ ApplicationWindow {
         function onRequestSaveAs() { saveAsDialog.open() }
     }
 
+    Connections {
+        target: appSafe
+        function onCursorPositionChanged() {
+            if (!appSafe) return
+            if (editor.cursorPosition === appSafe.cursorPosition) return
+
+            Qt.callLater(() => {
+                if (!appSafe) return
+                if (editor.activeFocus) return   // don't fight the user while editing
+                if (editor.cursorPosition !== appSafe.cursorPosition)
+                    editor.cursorPosition = appSafe.cursorPosition
+            })
+        }
+    }
+
     title: appSafe
         ? (appSafe.documentTitle + (appSafe.modified ? " •" : ""))
         : "SmartText"
@@ -569,6 +584,24 @@ ApplicationWindow {
                         color: "#eeeeee"
                         font.pixelSize: settingsSafe ? settingsSafe.fontSize : 11
 
+                        cursorDelegate: Rectangle {
+                            width: 1
+                            height: editor.font.pixelSize + 4
+                            color: "#eaeaea"
+                        }
+                        cursorVisible: true
+
+                        onCursorPositionChanged: {
+                            if (appSafe) appSafe.set_cursor_position(cursorPosition)
+                        }
+
+                        Keys.onPressed: (e) => {
+                            if (e.key === Qt.Key_Tab && e.modifiers === Qt.NoModifier) {
+                                e.accepted = true
+                                editor.insert(editor.cursorPosition, "    ") // 4 spaces
+                            }
+                        }
+
                         background: Rectangle {
                             radius: cornerRadius
                             color: "#111111"
@@ -593,6 +626,7 @@ ApplicationWindow {
                     hoverEnabled: true
                     acceptedButtons: Qt.NoButton
                     cursorShape: Qt.IBeamCursor
+                    propagateComposedEvents: true
 
                     onPositionChanged: {
                         if (win.uiLocked) return

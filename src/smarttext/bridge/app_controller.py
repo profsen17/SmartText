@@ -14,6 +14,7 @@ class AppController(QObject):
     modifiedChanged = Signal()
     statusMessageChanged = Signal()
     currentIndexChanged = Signal()
+    cursorPositionChanged = Signal() 
 
     # requests to QML
     requestSaveAs = Signal()
@@ -84,6 +85,7 @@ class AppController(QObject):
         self.modifiedChanged.emit()
         self.documentTitleChanged.emit()
         self.currentIndexChanged.emit()
+        self.cursorPositionChanged.emit() 
 
     def _open_new_tab(self, doc: Document) -> None:
         new_row = self._tabs.add_doc(doc)
@@ -143,6 +145,11 @@ class AppController(QObject):
 
     tabsModel = Property(QObject, get_tabs_model, constant=True)
 
+    def get_cursor_position(self) -> int:
+        return int(self._current_doc().cursor_pos)
+
+    cursorPosition = Property(int, get_cursor_position, notify=cursorPositionChanged)
+
     # -------------------------
     # Slots callable from QML
     # -------------------------
@@ -164,6 +171,7 @@ class AppController(QObject):
             text = path.read_text(encoding="utf-8", errors="replace")
 
         opened_doc = Document(text=text, path=path, modified=False)
+        opened_doc.cursor_pos = 0 
 
         placeholder_i = self._find_pristine_placeholder_index()
         if placeholder_i is not None:
@@ -236,6 +244,16 @@ class AppController(QObject):
         elif index < self._current_index:
             self._current_index -= 1
             self.currentIndexChanged.emit()
+
+    @Slot(int)
+    def set_cursor_position(self, pos: int) -> None:
+        doc = self._current_doc()
+        # clamp to text length so it never breaks
+        pos = max(0, min(int(pos), len(doc.text)))
+        if doc.cursor_pos == pos:
+            return
+        doc.cursor_pos = pos
+        self.cursorPositionChanged.emit()
 
     # -------------------------
     # Session

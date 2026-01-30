@@ -10,6 +10,9 @@ class Document:
     path: Path | None = None
     modified: bool = False
 
+    # ✅ remember caret per file
+    cursor_pos: int = 0
+
     @property
     def title(self) -> str:
         return self.path.name if self.path else "Untitled"
