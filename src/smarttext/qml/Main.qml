@@ -19,6 +19,29 @@ ApplicationWindow {
     property var settingsSafe: (typeof settingsStore !== "undefined" && settingsStore !== null) ? settingsStore : null
     property bool uiLocked: openDialog.visible || saveAsDialog.visible || settingsWindow.visible
 
+    property bool restoring: false
+
+    function restoreEditorState() {
+        if (!appSafe) return
+
+        // Don't skip just because editor has focus — on tab switch it usually does.
+        restoring = true
+
+        // Wait for bindings + layout to settle (text -> contentHeight -> flickable range)
+        Qt.callLater(() => Qt.callLater(() => {
+            if (!appSafe) { restoring = false; return }
+            if (!editorScroll.contentItem) { restoring = false; return }
+
+            // 1) cursor
+            editor.cursorPosition = appSafe.cursorPosition
+
+            // 2) scroll (restore AFTER cursor, so it doesn't get reset by cursor positioning)
+            editorScroll.contentItem.contentY = Math.max(0, appSafe.scrollY)
+
+            restoring = false
+        }))
+    }
+
     // ---- Shortcuts ----
     Shortcut {
         enabled: settingsSafe !== null
@@ -51,18 +74,20 @@ ApplicationWindow {
 
     Connections {
         target: appSafe
-        function onCursorPositionChanged() {
-            if (!appSafe) return
-            if (editor.cursorPosition === appSafe.cursorPosition) return
-
-            Qt.callLater(() => {
-                if (!appSafe) return
-                if (editor.activeFocus) return   // don't fight the user while editing
-                if (editor.cursorPosition !== appSafe.cursorPosition)
-                    editor.cursorPosition = appSafe.cursorPosition
-            })
+        function onCurrentIndexChanged() {
+            win.restoreEditorState()
         }
     }
+
+    Connections {
+        target: appSafe
+        function onTextChanged() {
+            // When switching tabs, text updates -> layout changes -> restore after that
+            win.restoreEditorState()
+        }
+    }
+
+    Component.onCompleted: restoreEditorState()
 
     title: appSafe
         ? (appSafe.documentTitle + (appSafe.modified ? " •" : ""))
@@ -573,6 +598,16 @@ ApplicationWindow {
                         background: Rectangle {
                             radius: width / 2
                             color: "transparent"
+                        }
+                    }
+
+                    Connections {
+                        target: editorScroll.contentItem
+                        function onContentYChanged() {
+                            if (!appSafe) return
+                            if (!editorScroll.contentItem) return
+                            if (win.restoring) return              // <- key: ignore while restoring
+                            appSafe.set_scroll_y(editorScroll.contentItem.contentY)
                         }
                     }
 

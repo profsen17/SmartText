@@ -14,7 +14,8 @@ class AppController(QObject):
     modifiedChanged = Signal()
     statusMessageChanged = Signal()
     currentIndexChanged = Signal()
-    cursorPositionChanged = Signal() 
+    cursorPositionChanged = Signal()
+    scrollYChanged = Signal()
 
     # requests to QML
     requestSaveAs = Signal()
@@ -80,12 +81,12 @@ class AppController(QObject):
         return self._tabs.docs()[self._current_index]
 
     def _sync_current_to_qml(self) -> None:
-        # call when current tab changes
         self.textChanged.emit()
         self.modifiedChanged.emit()
         self.documentTitleChanged.emit()
         self.currentIndexChanged.emit()
-        self.cursorPositionChanged.emit() 
+        self.cursorPositionChanged.emit()
+        self.scrollYChanged.emit()
 
     def _open_new_tab(self, doc: Document) -> None:
         new_row = self._tabs.add_doc(doc)
@@ -149,6 +150,9 @@ class AppController(QObject):
         return int(self._current_doc().cursor_pos)
 
     cursorPosition = Property(int, get_cursor_position, notify=cursorPositionChanged)
+
+    def get_scroll_y(self) -> float:
+        return float(self._current_doc().scroll_y)
 
     # -------------------------
     # Slots callable from QML
@@ -254,6 +258,17 @@ class AppController(QObject):
             return
         doc.cursor_pos = pos
         self.cursorPositionChanged.emit()
+
+    @Slot(float)
+    def set_scroll_y(self, y: float) -> None:
+        doc = self._current_doc()
+        y = max(0.0, float(y))
+        if doc.scroll_y == y:
+            return
+        doc.scroll_y = y
+        self.scrollYChanged.emit()
+
+    scrollY = Property(float, get_scroll_y, notify=scrollYChanged)
 
     # -------------------------
     # Session

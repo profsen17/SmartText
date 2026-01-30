@@ -9,6 +9,8 @@ class Document:
     text: str = ""
     path: Path | None = None
     modified: bool = False
+    cursor_pos: int = 0
+    scroll_y: float = 0.0
 
     # ✅ remember caret per file
     cursor_pos: int = 0
