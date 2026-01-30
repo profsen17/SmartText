@@ -36,6 +36,8 @@ def main() -> int:
     # Only primary instance creates the GUI application
     app = QGuiApplication(sys.argv)
 
+    QGuiApplication.setDesktopFileName("smarttext")
+
     instance = SingleInstance(SERVER_NAME)
     if not instance.become_primary():
         # rare race: primary appeared between checks

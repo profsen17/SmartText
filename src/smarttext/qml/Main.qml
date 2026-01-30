@@ -563,7 +563,6 @@ ApplicationWindow {
 
                     TextArea {
                         id: editor
-
                         width: editorScroll.availableWidth
                         wrapMode: TextArea.Wrap
                         padding: 12
@@ -593,6 +592,8 @@ ApplicationWindow {
                     anchors.fill: parent
                     hoverEnabled: true
                     acceptedButtons: Qt.NoButton
+                    cursorShape: Qt.IBeamCursor
+
                     onPositionChanged: {
                         if (win.uiLocked) return
                         if (editorShell.hovering) editorShell.resetIdleTimer()
