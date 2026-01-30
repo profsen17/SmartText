@@ -1,7 +1,7 @@
-import QtQuick 2.15
-import QtQuick.Controls 2.15
-import QtQuick.Layouts 1.15
-import QtQuick.Dialogs 6.5
+import QtQuick
+import QtQuick.Controls
+import QtQuick.Layouts
+import QtQuick.Dialogs
 import QtQuick.Effects
 import "components"
 
@@ -381,31 +381,50 @@ ApplicationWindow {
                         sidebarCloseTimer.restart()
                 }
 
-                TextArea {
-                    id: editor
+                ScrollView {
+                    id: editorScroll
                     anchors.fill: parent
-                    wrapMode: TextArea.Wrap
-                    padding: 12
-                    color: "#eeeeee"
-                    font.pixelSize: settingsSafe ? settingsSafe.fontSize : 11
+                    clip: true
 
-                    background: Rectangle {
-                        radius: cornerRadius
-                        color: "#111111"
-                        border.color: "#333333"
-                        border.width: 1
+                    ScrollBar.vertical.policy: ScrollBar.AsNeeded
+                    ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
+
+                    ScrollBar.vertical {
+                        id: vbar
+                        width: 10
+
+                        contentItem: Rectangle {
+                            radius: width / 2
+                            color: "#6b6b6b"
+                            opacity: vbar.pressed ? 0.9 : 0.6
+                        }
+                        background: Rectangle {
+                            radius: width / 2
+                            color: "transparent"
+                        }
                     }
 
-                    text: appSafe ? appSafe.text : ""
-                    onTextChanged: if (appSafe) appSafe.text = text
+                    TextArea {
+                        id: editor
 
-                    Keys.onPressed: (event) => {
-                        if (event.key === Qt.Key_Tab) {
-                            event.accepted = true
-                            const cursor = editor.cursorPosition
-                            editor.insert(cursor, "    ")
-                            editor.cursorPosition = cursor + 4
+                        width: editorScroll.availableWidth
+                        wrapMode: TextArea.Wrap
+                        padding: 12
+                        color: "#eeeeee"
+                        font.pixelSize: settingsSafe ? settingsSafe.fontSize : 11
+
+                        background: Rectangle {
+                            radius: cornerRadius
+                            color: "#111111"
+                            border.color: "#333333"
+                            border.width: 1
                         }
+
+                        // keep the UI updated from backend
+                        text: appSafe ? appSafe.text : ""
+
+                        // ✅ only update backend when the USER types
+                        onTextEdited: if (appSafe) appSafe.text = text
                     }
                 }
 
