@@ -37,7 +37,7 @@ class TabsModel(QAbstractListModel):
 
     # ---- helpers used by controller ----
     def docs(self) -> list[Document]:
-        return self._docs
+        return list(self._docs)
 
     def add_doc(self, doc: Document) -> int:
         row = len(self._docs)
@@ -63,4 +63,19 @@ class TabsModel(QAbstractListModel):
         self.beginResetModel()
         self._docs = docs
         self.endResetModel()
+
+    def set_doc(self, row: int, doc: Document) -> None:
+        if row < 0 or row >= len(self._docs):
+            return
+        self._docs[row] = doc
+        idx = self.index(row, 0)
+        self.dataChanged.emit(idx, idx, [self.TitleRole, self.ModifiedRole])
+
+    def count(self) -> int:
+        return len(self._docs)
+
+    def doc_at(self, row: int) -> Document:
+        return self._docs[row]
+
+
 

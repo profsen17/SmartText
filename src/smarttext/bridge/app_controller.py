@@ -40,17 +40,16 @@ class AppController(QObject):
             self._current_index = 0
 
     def _is_pristine_placeholder(self) -> bool:
-        """True if we only have the auto-created Untitled doc and it's untouched."""
         if self._restored_session:
             return False
-        docs = self._tabs.docs()
-        if len(docs) != 1:
+        if self._tabs.count() != 1:
             return False
-        d = docs[0]
+        d = self._tabs.doc_at(0)
         return (d.path is None) and (not d.modified) and (d.text == "")
 
     def _find_pristine_placeholder_index(self) -> int | None:
-        for i, d in enumerate(self._tabs.docs()):
+        for i in range(self._tabs.count()):
+            d = self._tabs.doc_at(i)
             if d.path is None and (not d.modified) and d.text == "":
                 return i
         return None
@@ -73,12 +72,11 @@ class AppController(QObject):
         self.statusMessageChanged.emit()
 
     def _current_doc(self) -> Document:
-        if self._current_index < 0 or self._current_index >= len(self._tabs.docs()):
-            # fail-safe: ensure we always have a valid doc
-            if len(self._tabs.docs()) == 0:
+        if self._current_index < 0 or self._current_index >= self._tabs.count():
+            if self._tabs.count() == 0:
                 self._tabs.add_doc(Document())
             self._current_index = 0
-        return self._tabs.docs()[self._current_index]
+        return self._tabs.doc_at(self._current_index)
 
     def _sync_current_to_qml(self) -> None:
         self.currentIndexChanged.emit()
@@ -105,7 +103,7 @@ class AppController(QObject):
 
     @Slot(int)
     def set_current_index(self, index: int) -> None:
-        if index < 0 or index >= len(self._tabs.docs()):
+        if index < 0 or index >= self._tabs.count():
             return
         if index == self._current_index:
             return
@@ -179,12 +177,8 @@ class AppController(QObject):
 
         placeholder_i = self._find_pristine_placeholder_index()
         if placeholder_i is not None:
-            # replace that tab
-            docs = self._tabs.docs()
-            docs[placeholder_i] = opened_doc
-            self._tabs.reset(docs)          # refresh model
+            self._tabs.set_doc(placeholder_i, opened_doc)
             self.set_current_index(placeholder_i)
-            self._tabs.update_row(placeholder_i)
         else:
             self._open_new_tab(opened_doc)
 
@@ -231,7 +225,7 @@ class AppController(QObject):
 
     @Slot(int)
     def close_tab(self, index: int) -> None:
-        if len(self._tabs.docs()) <= 1:
+        if self._tabs.count() <= 1:
             self._reset_session_on_exit = True
             QCoreApplication.quit()
             return
@@ -239,7 +233,7 @@ class AppController(QObject):
         self._tabs.remove_doc(index)
 
         if index == self._current_index:
-            self._current_index = min(index, len(self._tabs.docs()) - 1)
+            self._current_index = min(index, self._tabs.count() - 1)
             self._sync_current_to_qml()
         elif index < self._current_index:
             self._current_index -= 1
