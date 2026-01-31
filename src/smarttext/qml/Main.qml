@@ -53,24 +53,32 @@ ApplicationWindow {
     // ---- Shortcuts ----
     Shortcut {
         enabled: settingsSafe !== null
+                && !win.uiLocked
+                && !(settingsWindow && settingsWindow.capturingShortcut)
         sequence: settingsSafe ? settingsSafe.shortcutNew : ""
         onActivated: if (appSafe) appSafe.new_file()
     }
 
     Shortcut {
         enabled: settingsSafe !== null
+                && !win.uiLocked
+                && !(settingsWindow && settingsWindow.capturingShortcut)
         sequence: settingsSafe ? settingsSafe.shortcutOpen : ""
         onActivated: openDialog.open()
     }
 
     Shortcut {
         enabled: settingsSafe !== null
+                && !win.uiLocked
+                && !(settingsWindow && settingsWindow.capturingShortcut)
         sequence: settingsSafe ? settingsSafe.shortcutSave : ""
         onActivated: if (appSafe) appSafe.save()
     }
 
     Shortcut {
         enabled: settingsSafe !== null
+                && !win.uiLocked
+                && !(settingsWindow && settingsWindow.capturingShortcut)
         sequence: settingsSafe ? settingsSafe.shortcutSaveAs : ""
         onActivated: saveAsDialog.open()
     }
@@ -335,6 +343,37 @@ ApplicationWindow {
 
                     model: appSafe ? appSafe.tabsModel : null
                     currentIndex: appSafe ? appSafe.currentIndex : 0
+
+                    move: Transition {
+                        NumberAnimation { properties: "x"; duration: 220; easing.type: Easing.OutCubic }
+                    }
+
+                    // Smoothly slide remaining tabs into place when one is removed
+                    displaced: Transition {
+                        NumberAnimation {
+                            properties: "x"
+                            duration: 220
+                            easing.type: Easing.OutCubic
+                        }
+                    }
+
+                    // Animate the tab being closed: slide up + fade out
+                    remove: Transition {
+                        ParallelAnimation {
+                            NumberAnimation {
+                                properties: "y"
+                                to: -18
+                                duration: 160
+                                easing.type: Easing.OutCubic
+                            }
+                            NumberAnimation {
+                                properties: "opacity"
+                                to: 0
+                                duration: 140
+                                easing.type: Easing.OutCubic
+                            }
+                        }
+                    }
 
                     delegate: Item {
                         id: tabItem

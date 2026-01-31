@@ -22,6 +22,9 @@ ApplicationWindow {
     readonly property string defaultShortcutSave: "Ctrl+S"
     readonly property string defaultShortcutSaveAs: "Ctrl+Shift+S"
 
+    // TRUE while the "Press a shortcut" popup is open
+    property bool capturingShortcut: capturePopup.visible
+
     function norm(seq) {
         if (!seq) return ""
         let s = ("" + seq).replace(/\s+/g, "")
@@ -403,6 +406,52 @@ ApplicationWindow {
         property string actionKey: ""
         property string captured: ""
         
+        property string errorText: ""
+
+        function storeOrDefault(action) {
+            // Returns the currently active shortcut for an action (normalized)
+            if (settingsStore) {
+                if (action === "new")    return settingsWin.norm(settingsStore.shortcutNew)
+                if (action === "open")   return settingsWin.norm(settingsStore.shortcutOpen)
+                if (action === "save")   return settingsWin.norm(settingsStore.shortcutSave)
+                if (action === "saveAs") return settingsWin.norm(settingsStore.shortcutSaveAs)
+            }
+            // fallback to defaults
+            if (action === "new")    return settingsWin.norm(settingsWin.defaultShortcutNew)
+            if (action === "open")   return settingsWin.norm(settingsWin.defaultShortcutOpen)
+            if (action === "save")   return settingsWin.norm(settingsWin.defaultShortcutSave)
+            if (action === "saveAs") return settingsWin.norm(settingsWin.defaultShortcutSaveAs)
+            return ""
+        }
+
+        function actionLabel(action) {
+            if (action === "new") return "New"
+            if (action === "open") return "Open"
+            if (action === "save") return "Save"
+            if (action === "saveAs") return "Save As"
+            return action
+        }
+
+        function findConflict(action, value) {
+            // Returns "" if no conflict, otherwise returns the conflicting actionKey
+            const v = settingsWin.norm(value)
+            const actions = ["new", "open", "save", "saveAs"]
+            for (let i = 0; i < actions.length; i++) {
+                const a = actions[i]
+                if (a === action) continue
+                if (storeOrDefault(a) === v) return a
+            }
+            return ""
+        }
+
+        function openFor(action, currentValue) {
+            actionKey = action
+            captured = currentValue
+            errorText = ""          // NEW
+            open()
+            captureArea.forceActiveFocus()
+        }
+
         function keyName(key, text) {
             // Prefer text when it's a normal printable letter/number
             if (text && text.length === 1) return text.toUpperCase()
@@ -479,13 +528,6 @@ ApplicationWindow {
             // (with modifier it's fine: Ctrl+S is okay)
 
             return true
-        }
-
-        function openFor(action, currentValue) {
-            actionKey = action
-            captured = currentValue
-            open()
-            captureArea.forceActiveFocus()
         }
 
         function applyToStore(action, value) {
@@ -598,6 +640,7 @@ ApplicationWindow {
                             parts.push(k)
 
                         capturePopup.captured = parts.join("+")
+                        capturePopup.errorText = "" 
                         event.accepted = true
                     }
 
@@ -608,6 +651,15 @@ ApplicationWindow {
                         font.pixelSize: 14
                     }
                 }
+            }
+
+            Label {
+                Layout.fillWidth: true
+                visible: capturePopup.errorText.length > 0
+                text: capturePopup.errorText
+                color: "#d67a7a"
+                font.pixelSize: 12
+                wrapMode: Text.WordWrap
             }
 
             RowLayout {
@@ -651,6 +703,14 @@ ApplicationWindow {
                         onClicked: {
                             if (!capturePopup.isValidShortcut(capturePopup.captured))
                                 return
+
+                            const conflict = capturePopup.findConflict(capturePopup.actionKey, capturePopup.captured)
+                            if (conflict !== "") {
+                                capturePopup.errorText =
+                                    "That shortcut is already used by “" + capturePopup.actionLabel(conflict) + "”. Choose another."
+                                return
+                            }
+
                             capturePopup.applyToStore(capturePopup.actionKey, capturePopup.captured)
                             capturePopup.close()
                         }
