@@ -250,6 +250,10 @@ class AppController(QObject):
         self.documentTitleChanged.emit()
         self._set_status(f"Saved: {path.name}")
 
+    @Slot()
+    def close_current_tab(self) -> None:
+        self.close_tab(self._current_index)
+
     @Slot(int)
     def close_tab(self, index: int) -> None:
         if self._tabs.count() <= 1:

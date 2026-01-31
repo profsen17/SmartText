@@ -11,6 +11,7 @@ ApplicationWindow {
     title: "Settings"
     color: "transparent"
     flags: Qt.FramelessWindowHint
+    modality: Qt.ApplicationModal
 
     // UI-only state
     property int selectedIndex: 0
@@ -21,6 +22,7 @@ ApplicationWindow {
     readonly property string defaultShortcutOpen: "Ctrl+O"
     readonly property string defaultShortcutSave: "Ctrl+S"
     readonly property string defaultShortcutSaveAs: "Ctrl+Shift+S"
+    readonly property string defaultShortcutClose: "Ctrl+W"
 
     // TRUE while the "Press a shortcut" popup is open
     property bool capturingShortcut: capturePopup.visible
@@ -53,6 +55,11 @@ ApplicationWindow {
                 window: settingsWin
                 cornerRadius: settingsWin.cornerRadius
                 titleText: "Settings"
+
+                draggable: false
+                showMinimize: false
+                showMaximize: false
+                showClose: true
             }
 
             RowLayout {
@@ -171,7 +178,7 @@ ApplicationWindow {
                                             onValueModified: if (settingsStore) settingsStore.fontSize = value
 
                                             implicitWidth: 80
-                                            implicitHeight: 28  // (you said you set this)
+                                            implicitHeight: 28
 
                                             background: Rectangle {
                                                 radius: settingsWin.cornerRadius
@@ -189,189 +196,243 @@ ApplicationWindow {
 
                         // ===== Page 1: Shortcuts =====
                         Item {
-                            ColumnLayout {
+                            ScrollView {
                                 anchors.fill: parent
-                                spacing: 16
+                                clip: true
 
-                                Label {
-                                    text: "Shortcuts"
-                                    color: "#eeeeee"
-                                    font.pixelSize: 18
-                                }
+                                ScrollBar.vertical.policy: ScrollBar.AsNeeded
+                                ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
 
-                                // ---------- New ----------
-                                Rectangle {
-                                    Layout.fillWidth: true
-                                    height: 60
-                                    radius: 10
-                                    color: "#111111"
-                                    border.color: "#333333"
-                                    border.width: 1
+                                rightPadding: 12
+                                contentWidth: availableWidth
 
-                                    RowLayout {
-                                        anchors.fill: parent
-                                        anchors.margins: 14
-                                        spacing: 12
+                                ColumnLayout {
+                                    width: parent.width - 12
+                                    spacing: 16
 
-                                        Label { text: "New"; color: "#dddddd"; font.pixelSize: 13 }
-                                        Item { Layout.fillWidth: true }
+                                    Label {
+                                        text: "Shortcuts"
+                                        color: "#eeeeee"
+                                        font.pixelSize: 18
+                                    }
 
-                                        Rectangle {
-                                            width: 180
-                                            height: 34
-                                            radius: settingsWin.cornerRadius
-                                            color: "#1e1e1e"
-                                            border.color: "#333333"
-                                            border.width: 1
+                                    // ---------- New ----------
+                                    Rectangle {
+                                        Layout.fillWidth: true
+                                        height: 60
+                                        radius: 10
+                                        color: "#111111"
+                                        border.color: "#333333"
+                                        border.width: 1
 
-                                            MouseArea {
-                                                anchors.fill: parent
-                                                hoverEnabled: true
-                                                onClicked: capturePopup.openFor("new", settingsStore ? settingsStore.shortcutNew : settingsWin.defaultShortcutNew)
-                                                onEntered: parent.color = "#222222"
-                                                onExited: parent.color = "#1e1e1e"
-                                            }
+                                        RowLayout {
+                                            anchors.fill: parent
+                                            anchors.margins: 14
+                                            spacing: 12
 
-                                            Label {
-                                                anchors.centerIn: parent
-                                                text: settingsStore ? settingsStore.shortcutNew : settingsWin.defaultShortcutNew
-                                                color: "#eeeeee"
-                                                font.pixelSize: 13
+                                            Label { text: "New"; color: "#dddddd"; font.pixelSize: 13 }
+                                            Item { Layout.fillWidth: true }
+
+                                            Rectangle {
+                                                width: 180
+                                                height: 34
+                                                radius: settingsWin.cornerRadius
+                                                color: "#1e1e1e"
+                                                border.color: "#333333"
+                                                border.width: 1
+
+                                                MouseArea {
+                                                    anchors.fill: parent
+                                                    hoverEnabled: true
+                                                    onClicked: capturePopup.openFor("new", settingsStore ? settingsStore.shortcutNew : settingsWin.defaultShortcutNew)
+                                                    onEntered: parent.color = "#222222"
+                                                    onExited: parent.color = "#1e1e1e"
+                                                }
+
+                                                Label {
+                                                    anchors.centerIn: parent
+                                                    text: settingsStore ? settingsStore.shortcutNew : settingsWin.defaultShortcutNew
+                                                    color: "#eeeeee"
+                                                    font.pixelSize: 13
+                                                }
                                             }
                                         }
                                     }
-                                }
 
-                                // ---------- Open ----------
-                                Rectangle {
-                                    Layout.fillWidth: true
-                                    height: 60
-                                    radius: 10
-                                    color: "#111111"
-                                    border.color: "#333333"
-                                    border.width: 1
+                                    // ---------- Open ----------
+                                    Rectangle {
+                                        Layout.fillWidth: true
+                                        height: 60
+                                        radius: 10
+                                        color: "#111111"
+                                        border.color: "#333333"
+                                        border.width: 1
 
-                                    RowLayout {
-                                        anchors.fill: parent
-                                        anchors.margins: 14
-                                        spacing: 12
+                                        RowLayout {
+                                            anchors.fill: parent
+                                            anchors.margins: 14
+                                            spacing: 12
 
-                                        Label { text: "Open"; color: "#dddddd"; font.pixelSize: 13 }
-                                        Item { Layout.fillWidth: true }
+                                            Label { text: "Open"; color: "#dddddd"; font.pixelSize: 13 }
+                                            Item { Layout.fillWidth: true }
 
-                                        Rectangle {
-                                            width: 180
-                                            height: 34
-                                            radius: settingsWin.cornerRadius
-                                            color: "#1e1e1e"
-                                            border.color: "#333333"
-                                            border.width: 1
+                                            Rectangle {
+                                                width: 180
+                                                height: 34
+                                                radius: settingsWin.cornerRadius
+                                                color: "#1e1e1e"
+                                                border.color: "#333333"
+                                                border.width: 1
 
-                                            MouseArea {
-                                                anchors.fill: parent
-                                                hoverEnabled: true
-                                                onClicked: capturePopup.openFor("open", settingsStore ? settingsStore.shortcutOpen : settingsWin.defaultShortcutOpen)
-                                                onEntered: parent.color = "#222222"
-                                                onExited: parent.color = "#1e1e1e"
-                                            }
+                                                MouseArea {
+                                                    anchors.fill: parent
+                                                    hoverEnabled: true
+                                                    onClicked: capturePopup.openFor("open", settingsStore ? settingsStore.shortcutOpen : settingsWin.defaultShortcutOpen)
+                                                    onEntered: parent.color = "#222222"
+                                                    onExited: parent.color = "#1e1e1e"
+                                                }
 
-                                            Label {
-                                                anchors.centerIn: parent
-                                                text: settingsStore ? settingsStore.shortcutOpen : settingsWin.defaultShortcutOpen
-                                                color: "#eeeeee"
-                                                font.pixelSize: 13
-                                            }
-                                        }
-                                    }
-                                }
-
-                                // ---------- Save ----------
-                                Rectangle {
-                                    Layout.fillWidth: true
-                                    height: 60
-                                    radius: 10
-                                    color: "#111111"
-                                    border.color: "#333333"
-                                    border.width: 1
-
-                                    RowLayout {
-                                        anchors.fill: parent
-                                        anchors.margins: 14
-                                        spacing: 12
-
-                                        Label { text: "Save"; color: "#dddddd"; font.pixelSize: 13 }
-                                        Item { Layout.fillWidth: true }
-
-                                        Rectangle {
-                                            width: 180
-                                            height: 34
-                                            radius: settingsWin.cornerRadius
-                                            color: "#1e1e1e"
-                                            border.color: "#333333"
-                                            border.width: 1
-
-                                            MouseArea {
-                                                anchors.fill: parent
-                                                hoverEnabled: true
-                                                onClicked: capturePopup.openFor("save", settingsStore ? settingsStore.shortcutSave : settingsWin.defaultShortcutSave)
-                                                onEntered: parent.color = "#222222"
-                                                onExited: parent.color = "#1e1e1e"
-                                            }
-
-                                            Label {
-                                                anchors.centerIn: parent
-                                                text: settingsStore ? settingsStore.shortcutSave : settingsWin.defaultShortcutSave
-                                                color: "#eeeeee"
-                                                font.pixelSize: 13
+                                                Label {
+                                                    anchors.centerIn: parent
+                                                    text: settingsStore ? settingsStore.shortcutOpen : settingsWin.defaultShortcutOpen
+                                                    color: "#eeeeee"
+                                                    font.pixelSize: 13
+                                                }
                                             }
                                         }
                                     }
-                                }
 
-                                // ---------- Save As ----------
-                                Rectangle {
-                                    Layout.fillWidth: true
-                                    height: 60
-                                    radius: 10
-                                    color: "#111111"
-                                    border.color: "#333333"
-                                    border.width: 1
+                                    // ---------- Save ----------
+                                    Rectangle {
+                                        Layout.fillWidth: true
+                                        height: 60
+                                        radius: 10
+                                        color: "#111111"
+                                        border.color: "#333333"
+                                        border.width: 1
 
-                                    RowLayout {
-                                        anchors.fill: parent
-                                        anchors.margins: 14
-                                        spacing: 12
+                                        RowLayout {
+                                            anchors.fill: parent
+                                            anchors.margins: 14
+                                            spacing: 12
 
-                                        Label { text: "Save As"; color: "#dddddd"; font.pixelSize: 13 }
-                                        Item { Layout.fillWidth: true }
+                                            Label { text: "Save"; color: "#dddddd"; font.pixelSize: 13 }
+                                            Item { Layout.fillWidth: true }
 
-                                        Rectangle {
-                                            width: 180
-                                            height: 34
-                                            radius: settingsWin.cornerRadius
-                                            color: "#1e1e1e"
-                                            border.color: "#333333"
-                                            border.width: 1
+                                            Rectangle {
+                                                width: 180
+                                                height: 34
+                                                radius: settingsWin.cornerRadius
+                                                color: "#1e1e1e"
+                                                border.color: "#333333"
+                                                border.width: 1
 
-                                            MouseArea {
-                                                anchors.fill: parent
-                                                hoverEnabled: true
-                                                onClicked: capturePopup.openFor("saveAs", settingsStore ? settingsStore.shortcutSaveAs : settingsWin.defaultShortcutSaveAs)
-                                                onEntered: parent.color = "#222222"
-                                                onExited: parent.color = "#1e1e1e"
-                                            }
+                                                MouseArea {
+                                                    anchors.fill: parent
+                                                    hoverEnabled: true
+                                                    onClicked: capturePopup.openFor("save", settingsStore ? settingsStore.shortcutSave : settingsWin.defaultShortcutSave)
+                                                    onEntered: parent.color = "#222222"
+                                                    onExited: parent.color = "#1e1e1e"
+                                                }
 
-                                            Label {
-                                                anchors.centerIn: parent
-                                                text: settingsStore ? settingsStore.shortcutSaveAs : settingsWin.defaultShortcutSaveAs
-                                                color: "#eeeeee"
-                                                font.pixelSize: 13
+                                                Label {
+                                                    anchors.centerIn: parent
+                                                    text: settingsStore ? settingsStore.shortcutSave : settingsWin.defaultShortcutSave
+                                                    color: "#eeeeee"
+                                                    font.pixelSize: 13
+                                                }
                                             }
                                         }
                                     }
-                                }
 
-                                Item { Layout.fillHeight: true }
+                                    // ---------- Save As ----------
+                                    Rectangle {
+                                        Layout.fillWidth: true
+                                        height: 60
+                                        radius: 10
+                                        color: "#111111"
+                                        border.color: "#333333"
+                                        border.width: 1
+
+                                        RowLayout {
+                                            anchors.fill: parent
+                                            anchors.margins: 14
+                                            spacing: 12
+
+                                            Label { text: "Save As"; color: "#dddddd"; font.pixelSize: 13 }
+                                            Item { Layout.fillWidth: true }
+
+                                            Rectangle {
+                                                width: 180
+                                                height: 34
+                                                radius: settingsWin.cornerRadius
+                                                color: "#1e1e1e"
+                                                border.color: "#333333"
+                                                border.width: 1
+
+                                                MouseArea {
+                                                    anchors.fill: parent
+                                                    hoverEnabled: true
+                                                    onClicked: capturePopup.openFor("saveAs", settingsStore ? settingsStore.shortcutSaveAs : settingsWin.defaultShortcutSaveAs)
+                                                    onEntered: parent.color = "#222222"
+                                                    onExited: parent.color = "#1e1e1e"
+                                                }
+
+                                                Label {
+                                                    anchors.centerIn: parent
+                                                    text: settingsStore ? settingsStore.shortcutSaveAs : settingsWin.defaultShortcutSaveAs
+                                                    color: "#eeeeee"
+                                                    font.pixelSize: 13
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    // ---------- Close ----------
+                                    Rectangle {
+                                        Layout.fillWidth: true
+                                        height: 60
+                                        radius: 10
+                                        color: "#111111"
+                                        border.color: "#333333"
+                                        border.width: 1
+
+                                        RowLayout {
+                                            anchors.fill: parent
+                                            anchors.margins: 14
+                                            spacing: 12
+
+                                            Label { text: "Close"; color: "#dddddd"; font.pixelSize: 13 }
+                                            Item { Layout.fillWidth: true }
+
+                                            Rectangle {
+                                                width: 180
+                                                height: 34
+                                                radius: settingsWin.cornerRadius
+                                                color: "#1e1e1e"
+                                                border.color: "#333333"
+                                                border.width: 1
+
+                                                MouseArea {
+                                                    anchors.fill: parent
+                                                    hoverEnabled: true
+                                                    onClicked: capturePopup.openFor("close", settingsStore ? settingsStore.shortcutClose : settingsWin.defaultShortcutClose)
+                                                    onEntered: parent.color = "#222222"
+                                                    onExited: parent.color = "#1e1e1e"
+                                                }
+
+                                                Label {
+                                                    anchors.centerIn: parent
+                                                    text: settingsStore ? settingsStore.shortcutClose : settingsWin.defaultShortcutClose
+                                                    color: "#eeeeee"
+                                                    font.pixelSize: 13
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    Item { Layout.preferredHeight: 8 }
+                                }
                             }
                         }
 
@@ -415,12 +476,14 @@ ApplicationWindow {
                 if (action === "open")   return settingsWin.norm(settingsStore.shortcutOpen)
                 if (action === "save")   return settingsWin.norm(settingsStore.shortcutSave)
                 if (action === "saveAs") return settingsWin.norm(settingsStore.shortcutSaveAs)
+                if (action === "close")  return settingsWin.norm(settingsStore.shortcutClose)
             }
             // fallback to defaults
             if (action === "new")    return settingsWin.norm(settingsWin.defaultShortcutNew)
             if (action === "open")   return settingsWin.norm(settingsWin.defaultShortcutOpen)
             if (action === "save")   return settingsWin.norm(settingsWin.defaultShortcutSave)
             if (action === "saveAs") return settingsWin.norm(settingsWin.defaultShortcutSaveAs)
+            if (action === "close")  return settingsWin.norm(settingsWin.defaultShortcutClose)
             return ""
         }
 
@@ -429,13 +492,14 @@ ApplicationWindow {
             if (action === "open") return "Open"
             if (action === "save") return "Save"
             if (action === "saveAs") return "Save As"
+            if (action === "close") return "Close"
             return action
         }
 
         function findConflict(action, value) {
             // Returns "" if no conflict, otherwise returns the conflicting actionKey
             const v = settingsWin.norm(value)
-            const actions = ["new", "open", "save", "saveAs"]
+            const actions = ["new", "open", "save", "saveAs", "close"]
             for (let i = 0; i < actions.length; i++) {
                 const a = actions[i]
                 if (a === action) continue
@@ -538,6 +602,7 @@ ApplicationWindow {
             else if (action === "open") settingsStore.shortcutOpen = v
             else if (action === "save") settingsStore.shortcutSave = v
             else if (action === "saveAs") settingsStore.shortcutSaveAs = v
+            else if (action === "close") settingsStore.shortcutClose = v
         }
 
         background: Rectangle {

@@ -18,6 +18,7 @@ ApplicationWindow {
     property var appSafe: (typeof app !== "undefined" && app !== null) ? app : null
     property var settingsSafe: (typeof settingsStore !== "undefined" && settingsStore !== null) ? settingsStore : null
     property bool uiLocked: openDialog.visible || saveAsDialog.visible || settingsWindow.visible
+    property int _prevVisibility: Window.Windowed
 
     property bool restoring: false
     property bool pendingRestore: false
@@ -52,7 +53,7 @@ ApplicationWindow {
 
     // ---- Shortcuts ----
     Shortcut {
-        enabled: settingsSafe !== null
+        enabled: settingsSafe !== null && !win.uiLocked
                 && !win.uiLocked
                 && !(settingsWindow && settingsWindow.capturingShortcut)
         sequence: settingsSafe ? settingsSafe.shortcutNew : ""
@@ -60,7 +61,7 @@ ApplicationWindow {
     }
 
     Shortcut {
-        enabled: settingsSafe !== null
+        enabled: settingsSafe !== null && !win.uiLocked
                 && !win.uiLocked
                 && !(settingsWindow && settingsWindow.capturingShortcut)
         sequence: settingsSafe ? settingsSafe.shortcutOpen : ""
@@ -68,7 +69,7 @@ ApplicationWindow {
     }
 
     Shortcut {
-        enabled: settingsSafe !== null
+        enabled: settingsSafe !== null && !win.uiLocked
                 && !win.uiLocked
                 && !(settingsWindow && settingsWindow.capturingShortcut)
         sequence: settingsSafe ? settingsSafe.shortcutSave : ""
@@ -76,11 +77,35 @@ ApplicationWindow {
     }
 
     Shortcut {
-        enabled: settingsSafe !== null
+        enabled: settingsSafe !== null && !win.uiLocked
                 && !win.uiLocked
                 && !(settingsWindow && settingsWindow.capturingShortcut)
         sequence: settingsSafe ? settingsSafe.shortcutSaveAs : ""
         onActivated: saveAsDialog.open()
+    }
+
+    Shortcut {
+        enabled: settingsSafe !== null && !win.uiLocked
+                && !win.uiLocked
+                && !(settingsWindow && settingsWindow.capturingShortcut)
+        sequence: settingsSafe ? settingsSafe.shortcutClose : ""
+        onActivated: if (appSafe) appSafe.close_current_tab()
+    }
+
+    Shortcut {
+        enabled: !win.uiLocked
+        sequence: "F11"
+        onActivated: {
+            if (win.visibility === Window.FullScreen) {
+                // restore what we had before fullscreen
+                if (win._prevVisibility === Window.Maximized) win.showMaximized()
+                else win.showNormal()
+            } else {
+                // remember current state then go fullscreen
+                win._prevVisibility = win.visibility
+                win.showFullScreen()
+            }
+        }
     }
 
     Connections {
@@ -151,7 +176,20 @@ ApplicationWindow {
         function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
 
         property bool hoveringTop: hotZone.containsMouse || handleArea.containsMouse
-        property bool showing: (hoveringTop || forceVisible) && !win.uiLocked
+        //Put this if you want drag handle in F11 Fulscreen mode
+        //property bool showing: (hoveringTop || forceVisible) && !win.uiLocked
+        property bool showing: (hoveringTop || forceVisible) && !win.uiLocked && win.visibility !== Window.FullScreen
+
+        //Remove this if you want drag handle in F11 Fullscreen mode
+        Connections {
+            target: win
+            function onVisibilityChanged() {
+                if (win.visibility === Window.FullScreen) {
+                    topHandleLayer.forceVisible = false
+                    topHandleLayer.postDragArmed = false
+                }
+            }
+        }
 
         MouseArea {
             id: hotZone
@@ -311,6 +349,10 @@ ApplicationWindow {
                     anchors.fill: parent
                     radius: win.cornerRadius
                     color: "#1b1b1b"
+                    gradient: Gradient {
+                        GradientStop { position: 0.0; color: "#202020" }
+                        GradientStop { position: 1.0; color: "#161616" }
+                    }
                     border.color: "#2a2a2a"
                     border.width: 1
                 }
@@ -556,7 +598,7 @@ ApplicationWindow {
                                 anchors.centerIn: parent
 
                                 Rectangle {
-                                    visible: win && win.visibility !== Window.Maximized
+                                    visible: win && win.visibility !== Window.Maximized && win.visibility !== Window.FullScreen
                                     anchors.centerIn: parent
                                     width: 10
                                     height: 10
@@ -567,7 +609,7 @@ ApplicationWindow {
                                 }
 
                                 Item {
-                                    visible: win && win.visibility === Window.Maximized
+                                    visible: win && (win.visibility === Window.Maximized || win.visibility === Window.FullScreen)
                                     anchors.centerIn: parent
                                     width: 12
                                     height: 12
@@ -1345,6 +1387,36 @@ ApplicationWindow {
                     }
                 }
             }
+        }
+    }
+
+    // ---- Modal scrim when Settings is open ----
+    Rectangle {
+        id: settingsScrim
+        anchors.fill: parent
+        z: 1000000
+        visible: settingsWindow.visible
+
+        radius: win.cornerRadius      // ✅ match main window rounding
+        clip: true                    // ✅ enforce rounding
+
+        color: "#000000"
+        opacity: settingsWindow.visible ? 0.55 : 0.0
+
+        Behavior on opacity {
+            NumberAnimation { duration: 160; easing.type: Easing.OutCubic }
+        }
+
+        // Block ALL interaction with the main window while visible
+        MouseArea {
+            anchors.fill: parent
+            acceptedButtons: Qt.AllButtons
+            hoverEnabled: true
+            preventStealing: true
+            propagateComposedEvents: false
+            onPressed: e => e.accepted = true
+            onReleased: e => e.accepted = true
+            onWheel: e => e.accepted = true
         }
     }
 

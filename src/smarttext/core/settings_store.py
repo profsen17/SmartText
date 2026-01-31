@@ -21,6 +21,7 @@ class SettingsStore(QObject):
     shortcutOpenChanged = Signal()
     shortcutSaveChanged = Signal()
     shortcutSaveAsChanged = Signal()
+    shortcutCloseChanged = Signal()
 
     # optional signal if you want to debug
     loaded = Signal()
@@ -38,6 +39,7 @@ class SettingsStore(QObject):
         self._shortcut_open = "Ctrl+O"
         self._shortcut_save = "Ctrl+S"
         self._shortcut_save_as = "Ctrl+Shift+S"
+        self._shortcut_close = "Ctrl+W"
 
         self.load()
 
@@ -50,6 +52,7 @@ class SettingsStore(QObject):
                 "open": self._shortcut_open,
                 "save": self._shortcut_save,
                 "saveAs": self._shortcut_save_as,
+                "close": self._shortcut_close,
             },
         }
 
@@ -62,6 +65,7 @@ class SettingsStore(QObject):
         self.setShortcutOpen(str(sc.get("open", self._shortcut_open)))
         self.setShortcutSave(str(sc.get("save", self._shortcut_save)))
         self.setShortcutSaveAs(str(sc.get("saveAs", self._shortcut_save_as)))
+        self.setShortcutClose(str(sc.get("close", self._shortcut_close)))
 
     @Slot()
     def load(self) -> None:
@@ -171,6 +175,19 @@ class SettingsStore(QObject):
     shortcutSaveAs = Property(
         str, getShortcutSaveAs, setShortcutSaveAs, notify=shortcutSaveAsChanged
     )
+
+    def getShortcutClose(self) -> str:
+        return self._shortcut_close
+
+    def setShortcutClose(self, v: str) -> None:
+        v = self.normalizeSequence(v)
+        if v == self._shortcut_close:
+            return
+        self._shortcut_close = v
+        self.shortcutCloseChanged.emit()
+        self.save()
+
+    shortcutClose = Property(str, getShortcutClose, setShortcutClose, notify=shortcutCloseChanged)
 
     # Optional: expose the file path for debugging in QML if you want
     @Property(str, constant=True)

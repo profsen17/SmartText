@@ -8,16 +8,26 @@ Rectangle {
     required property var window
     required property int cornerRadius
     property string titleText: "SmartText"
+    property bool draggable: true
+    property bool showMinimize: true
+    property bool showMaximize: true
+    property bool showClose: true
 
     height: 42
-    color: "#2a2a2a"
+    color: "#1b1b1b"
     radius: cornerRadius
     clip: true
 
+    gradient: Gradient {
+        GradientStop { position: 0.0; color: "#202020" }
+        GradientStop { position: 1.0; color: "#161616" }
+    }
+    border.color: "#2a2a2a"
+    border.width: 1
 
-    // Drag region behind the buttons
     MouseArea {
         anchors.fill: parent
+        enabled: bar.draggable
         acceptedButtons: Qt.LeftButton
         onPressed: {
             if (bar.window && bar.window.startSystemMove) bar.window.startSystemMove()
@@ -53,6 +63,10 @@ Rectangle {
                 id: minBtn
                 Layout.preferredWidth: 28
                 Layout.preferredHeight: 28
+
+                visible: bar.showMinimize
+                enabled: bar.showMinimize
+
                 hoverEnabled: true
                 onClicked: if (bar.window) bar.window.showMinimized()
 
@@ -74,6 +88,10 @@ Rectangle {
                 id: maxBtn
                 Layout.preferredWidth: 28
                 Layout.preferredHeight: 28
+
+                visible: bar.showMaximize
+                enabled: bar.showMaximize
+
                 hoverEnabled: true
                 onClicked: {
                     if (!bar.window) return
@@ -141,6 +159,10 @@ Rectangle {
                 id: closeBtn
                 Layout.preferredWidth: 28
                 Layout.preferredHeight: 28
+
+                visible: bar.showClose
+                enabled: bar.showClose
+
                 hoverEnabled: true
                 onClicked: if (bar.window) bar.window.close()
 
