@@ -20,25 +20,33 @@ ApplicationWindow {
     property bool uiLocked: openDialog.visible || saveAsDialog.visible || settingsWindow.visible
 
     property bool restoring: false
+    property bool pendingRestore: false
+    property int restoreToken: 0
 
     function restoreEditorState() {
         if (!appSafe) return
-
-        // Don't skip just because editor has focus — on tab switch it usually does.
         restoring = true
+        restoreToken++
+        const tok = restoreToken
 
-        // Wait for bindings + layout to settle (text -> contentHeight -> flickable range)
         Qt.callLater(() => Qt.callLater(() => {
-            if (!appSafe) { restoring = false; return }
-            if (!editorScroll.contentItem) { restoring = false; return }
+            if (tok !== restoreToken) return
+            if (!appSafe || !editorScroll.contentItem) { restoring = false; return }
 
-            // 1) cursor
-            editor.cursorPosition = appSafe.cursorPosition
+            // IMPORTANT: load doc text first (no binding!)
+            editor.text = appSafe.text
 
-            // 2) scroll (restore AFTER cursor, so it doesn't get reset by cursor positioning)
+            const pos = Math.max(0, Math.min(appSafe.cursorPosition, editor.length))
+            editor.cursorPosition = pos
             editorScroll.contentItem.contentY = Math.max(0, appSafe.scrollY)
 
-            restoring = false
+            win.pendingRestore = false
+
+            Qt.callLater(() => {
+                if (tok !== restoreToken) return
+                editor.cursorPosition = pos
+                restoring = false
+            })
         }))
     }
 
@@ -75,14 +83,17 @@ ApplicationWindow {
     Connections {
         target: appSafe
         function onCurrentIndexChanged() {
-            win.restoreEditorState()
+            win.pendingRestore = true
         }
     }
 
     Connections {
         target: appSafe
         function onTextChanged() {
-            // When switching tabs, text updates -> layout changes -> restore after that
+            // Only restore when the text changed because we switched docs,
+            // NOT when the user is typing.
+            if (!win.pendingRestore) return
+            win.pendingRestore = false
             win.restoreEditorState()
         }
     }
@@ -94,16 +105,21 @@ ApplicationWindow {
         : "SmartText"
 
     onActiveChanged: {
-        if (!active) {
-            editorShell.sidebarOpen = false
-            editorShell.arrowHovering = false
-            editorShell.sidebarHovering = false
-            editorShell.hovering = false
-            sidebarCloseTimer.stop()
-            hoverDelayTimer.stop()
-            idleTimer.stop()
-            editorShell.idleHidden = false
+        if (active) {
+            // make cursor blink immediately on startup / when window becomes active
+            Qt.callLater(() => editor.forceActiveFocus())
+            return
         }
+
+        // your existing "lost focus" cleanup
+        editorShell.sidebarOpen = false
+        editorShell.arrowHovering = false
+        editorShell.sidebarHovering = false
+        editorShell.hovering = false
+        sidebarCloseTimer.stop()
+        hoverDelayTimer.stop()
+        idleTimer.stop()
+        editorShell.idleHidden = false
     }
 
     Item {
@@ -619,21 +635,36 @@ ApplicationWindow {
                         color: "#eeeeee"
                         font.pixelSize: settingsSafe ? settingsSafe.fontSize : 11
 
-                        cursorDelegate: Rectangle {
-                            width: 1
-                            height: editor.font.pixelSize + 4
-                            color: "#eaeaea"
+                        cursorVisible: false
+                        focus: true
+                        activeFocusOnTab: true
+
+                        Component.onCompleted: {
+                            // wait one tick so the window is visible and can accept focus
+                            Qt.callLater(() => editor.forceActiveFocus())
                         }
-                        cursorVisible: true
+
+                        onTextEdited: {
+                            if (!appSafe) return
+                            appSafe.text = text
+                            appSafe.set_cursor_position(editor.cursorPosition)
+                            customCaret.solidNow()
+                        }
 
                         onCursorPositionChanged: {
-                            if (appSafe) appSafe.set_cursor_position(cursorPosition)
+                            if (!appSafe) return
+                            if (win.restoring) return
+                            appSafe.set_cursor_position(cursorPosition)
                         }
 
                         Keys.onPressed: (e) => {
+                            // keep caret solid for most keys
+                            if (e.key !== Qt.Key_Shift && e.key !== Qt.Key_Control && e.key !== Qt.Key_Alt && e.key !== Qt.Key_Meta)
+                                customCaret.solidNow()
+
                             if (e.key === Qt.Key_Tab && e.modifiers === Qt.NoModifier) {
                                 e.accepted = true
-                                editor.insert(editor.cursorPosition, "    ") // 4 spaces
+                                editor.insert(editor.cursorPosition, "    ")
                             }
                         }
 
@@ -643,12 +674,66 @@ ApplicationWindow {
                             border.color: "#333333"
                             border.width: 1
                         }
+                        text: ""
 
-                        // keep the UI updated from backend
-                        text: appSafe ? appSafe.text : ""
+                        Connections {
+                            target: appSafe
+                            function onTextChanged() {
+                                // Only pull backend text into the editor when we're switching docs
+                                // or when the editor isn't being actively edited.
+                                if (!appSafe) return
+                                if (win.pendingRestore || !editor.activeFocus) {
+                                    editor.text = appSafe.text
+                                }
+                            }
+                        }
 
-                        // ✅ only update backend when the USER types
-                        onTextEdited: if (appSafe) appSafe.text = text
+                        // ---- Custom caret (Qt cursor disabled) ----
+                        Rectangle {
+                            id: customCaret
+                            z: 9999
+                            width: 1
+                            color: "#eaeaea"
+                            visible: editor.activeFocus
+
+                            // Track caret geometry from TextArea
+                            x: editor.cursorRectangle.x
+                            y: editor.cursorRectangle.y
+                            height: editor.cursorRectangle.height
+
+                            // typing state
+                            property bool typing: false
+
+                            function solidNow() {
+                                typing = true
+                                opacity = 1
+                                resumeBlink.restart()
+                            }
+
+                            Timer {
+                                id: resumeBlink
+                                interval: 400   // how long after last input before blinking again
+                                repeat: false
+                                onTriggered: customCaret.typing = false
+                            }
+
+                            SequentialAnimation {
+                                id: caretBlink
+                                loops: Animation.Infinite
+                                running: editor.activeFocus && !customCaret.typing
+                                NumberAnimation { target: customCaret; property: "opacity"; to: 0; duration: 450 }
+                                NumberAnimation { target: customCaret; property: "opacity"; to: 1; duration: 450 }
+                            }
+
+                            Connections {
+                                target: editor
+                                function onActiveFocusChanged() {
+                                    customCaret.typing = false
+                                    customCaret.opacity = 1
+                                    resumeBlink.stop()
+                                }
+                            }
+                        }
                     }
                 }
 
