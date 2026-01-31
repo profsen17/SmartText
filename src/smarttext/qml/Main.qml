@@ -732,7 +732,8 @@ ApplicationWindow {
 
                         onCursorPositionChanged: {
                             if (!appSafe) return
-                            if (win.restoring) return
+                            // Block cursor writes during tab switching/restoring
+                            if (win.restoring || win.pendingRestore) return
                             appSafe.set_cursor_position(cursorPosition)
                         }
 
@@ -758,10 +759,10 @@ ApplicationWindow {
                         Connections {
                             target: appSafe
                             function onTextChanged() {
-                                // Only pull backend text into the editor when we're switching docs
-                                // or when the editor isn't being actively edited.
                                 if (!appSafe) return
-                                if (win.pendingRestore || !editor.activeFocus) {
+                                // Only update editor when user isn't actively editing.
+                                // Tab switching is handled by restoreEditorState().
+                                if (!editor.activeFocus && !win.pendingRestore) {
                                     editor.text = appSafe.text
                                 }
                             }

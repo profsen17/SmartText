@@ -81,10 +81,10 @@ class AppController(QObject):
         return self._tabs.docs()[self._current_index]
 
     def _sync_current_to_qml(self) -> None:
+        self.currentIndexChanged.emit()
         self.textChanged.emit()
         self.modifiedChanged.emit()
         self.documentTitleChanged.emit()
-        self.currentIndexChanged.emit()
         self.cursorPositionChanged.emit()
         self.scrollYChanged.emit()
 
@@ -238,13 +238,9 @@ class AppController(QObject):
 
         self._tabs.remove_doc(index)
 
-        # clamp current index
         if index == self._current_index:
             self._current_index = min(index, len(self._tabs.docs()) - 1)
-            self.currentIndexChanged.emit()
-            self.textChanged.emit()
-            self.modifiedChanged.emit()
-            self.documentTitleChanged.emit()
+            self._sync_current_to_qml()
         elif index < self._current_index:
             self._current_index -= 1
             self.currentIndexChanged.emit()

@@ -12,9 +12,6 @@ class Document:
     cursor_pos: int = 0
     scroll_y: float = 0.0
 
-    # ✅ remember caret per file
-    cursor_pos: int = 0
-
     @property
     def title(self) -> str:
         return self.path.name if self.path else "Untitled"
