@@ -90,6 +90,25 @@ class AppController(QObject):
         new_row = self._tabs.add_doc(doc)
         self.set_current_index(new_row)
 
+    def _norm_path(self, p: Path) -> Path:
+        """Normalize a path for comparisons (best-effort resolve)."""
+        try:
+            # strict=False avoids errors for odd paths; still normalizes '..' etc
+            return p.expanduser().resolve(strict=False)
+        except Exception:
+            return p.expanduser().absolute()
+
+    def _find_open_path_index(self, path: Path) -> int | None:
+        """Return tab index if a doc with this path is already open."""
+        target = self._norm_path(path)
+        for i in range(self._tabs.count()):
+            d = self._tabs.doc_at(i)
+            if d.path is None:
+                continue
+            if self._norm_path(d.path) == target:
+                return i
+        return None
+
     # -------------------------
     # Exposed properties
     # -------------------------
@@ -167,13 +186,21 @@ class AppController(QObject):
             self._set_status("Open cancelled / file not found")
             return
 
+        # ✅ If already open, just switch to that tab
+        existing_i = self._find_open_path_index(path)
+        if existing_i is not None:
+            self.set_current_index(existing_i)
+            self._set_status(f"Already open: {path.name}")
+            return
+
+        # Otherwise load from disk
         try:
             text = path.read_text(encoding="utf-8")
         except UnicodeDecodeError:
             text = path.read_text(encoding="utf-8", errors="replace")
 
-        opened_doc = Document(text=text, path=path, modified=False)
-        opened_doc.cursor_pos = 0 
+        opened_doc = Document(text=text, path=self._norm_path(path), modified=False)
+        opened_doc.cursor_pos = 0
 
         placeholder_i = self._find_pristine_placeholder_index()
         if placeholder_i is not None:
