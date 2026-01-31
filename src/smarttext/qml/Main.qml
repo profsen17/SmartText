@@ -375,6 +375,46 @@ ApplicationWindow {
                         }
                     }
 
+                    // Animate a newly created tab: drop in from above + fade in
+                    add: Transition {
+                        ParallelAnimation {
+                            NumberAnimation {
+                                properties: "y"
+                                from: -18
+                                to: 0
+                                duration: 180
+                                easing.type: Easing.OutCubic
+                            }
+                            NumberAnimation {
+                                properties: "opacity"
+                                from: 0
+                                to: 1
+                                duration: 160
+                                easing.type: Easing.OutCubic
+                            }
+                        }
+                    }
+
+                    // Optional: animate initial load too (when the model is first shown)
+                    populate: Transition {
+                        ParallelAnimation {
+                            NumberAnimation {
+                                properties: "y"
+                                from: -10
+                                to: 0
+                                duration: 180
+                                easing.type: Easing.OutCubic
+                            }
+                            NumberAnimation {
+                                properties: "opacity"
+                                from: 0
+                                to: 1
+                                duration: 160
+                                easing.type: Easing.OutCubic
+                            }
+                        }
+                    }
+
                     delegate: Item {
                         id: tabItem
                         width: Math.max(140, tabText.implicitWidth + 46)
