@@ -1,30 +1,25 @@
 #define MyAppName "SmartText"
-#define MyAppVersion "1.0.0"
-#define MyAppPublisher "SmartText"
+#define MyAppVersion "0.1.0"
 #define MyAppExeName "SmartText.exe"
 
 [Setup]
-AppId={{0F6F46D6-2D9D-4F33-8F6C-8A02C7C2D7D1}
+AppId={{D6F4A0B2-8F44-4EAF-BB8C-2F42F71D7B01}
 AppName={#MyAppName}
 AppVersion={#MyAppVersion}
-AppPublisher={#MyAppPublisher}
 DefaultDirName={autopf}\{#MyAppName}
 DefaultGroupName={#MyAppName}
-OutputDir={#SourcePath}\..\..\dist_installer
-OutputBaseFilename=SmartText-Setup
 Compression=lzma
 SolidCompression=yes
 WizardStyle=modern
+OutputDir={#SourcePath}\..\..\dist_installer
+OutputBaseFilename=SmartText-Setup
 
 [Files]
-Source: "{#SourcePath}\..\..\dist\SmartText\*"; DestDir: "{app}"; Flags: recursesubdirs createallsubdirs
-
-[Tasks]
-Name: "desktopicon"; Description: "Create a &desktop icon"; GroupDescription: "Additional icons:"
+Source: "{#SourcePath}\..\..\dist\SmartText\*"; DestDir: "{app}"; Flags: recursesubdirs createallsubdirs ignoreversion
 
 [Icons]
 Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
-Name: "{commondesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: desktopicon
+Name: "{commondesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
 
 [Run]
-Filename: "{app}\{#MyAppExeName}"; Description: "Launch {#MyAppName}"; Flags: nowait postinstall skipifsilent
+Filename: "{app}\{#MyAppExeName}"; Description: "Launch SmartText"; Flags: nowait postinstall skipifsilent

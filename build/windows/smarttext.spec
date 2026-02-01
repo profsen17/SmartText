@@ -1,32 +1,34 @@
 # -*- mode: python ; coding: utf-8 -*-
 
 from pathlib import Path
-from PyInstaller.utils.hooks import collect_submodules
+from PyInstaller.utils.hooks import collect_all
 
+# SPECPATH = directory containing this spec file (build/windows)
 ROOT = Path(SPECPATH).resolve().parents[1]
 
-block_cipher = None
+# Collect EVERYTHING needed for PySide6 (Qt, plugins, DLLs, etc.)
+pyside6_datas, pyside6_binaries, pyside6_hiddenimports = collect_all("PySide6")
 
 datas = [
     (str(ROOT / "src" / "smarttext" / "qml"), "qml"),
-]
+] + pyside6_datas
 
-hiddenimports = collect_submodules("PySide6")
+binaries = pyside6_binaries
+hiddenimports = pyside6_hiddenimports
 
 a = Analysis(
     [str(ROOT / "src" / "smarttext" / "main.py")],
     pathex=[str(ROOT / "src")],
-    binaries=[],
+    binaries=binaries,
     datas=datas,
     hiddenimports=hiddenimports,
     hookspath=[],
     runtime_hooks=[],
     excludes=[],
-    cipher=block_cipher,
     noarchive=False,
 )
 
-pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
+pyz = PYZ(a.pure, a.zipped_data)
 
 exe = EXE(
     pyz,
@@ -34,9 +36,6 @@ exe = EXE(
     [],
     exclude_binaries=True,
     name="SmartText",
-    debug=False,
-    strip=False,
-    upx=True,
     console=False,
 )
 
@@ -45,7 +44,5 @@ coll = COLLECT(
     a.binaries,
     a.zipfiles,
     a.datas,
-    strip=False,
-    upx=True,
     name="SmartText",
 )
