@@ -7,8 +7,8 @@ from PySide6.QtCore import QUrl, QTimer
 from PySide6.QtGui import QGuiApplication
 from PySide6.QtQml import QQmlApplicationEngine
 
-from .app import bootstrap
-from .bridge.single_instance import SingleInstance
+from smarttext.app import bootstrap
+from smarttext.bridge.single_instance import SingleInstance
 
 SERVER_NAME = "SmartText.SingleInstance.v1"
 

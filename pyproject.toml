@@ -6,11 +6,21 @@ dependencies = [
   "PySide6>=6.6"
 ]
 
-[project.scripts]
+# GUI entry point (NO console window on Windows)
+[project.gui-scripts]
 smarttext = "smarttext.main:main"
 
-[tool.setuptools]
-package-dir = {"" = "src"}
+# Optional console entry (useful for debugging)
+[project.scripts]
+smarttext-console = "smarttext.main:main"
 
+[tool.setuptools]
+package-dir = { "" = "src" }
+
+# Include ALL QML + icon assets in the package
 [tool.setuptools.package-data]
-smarttext = ["qml/*.qml"]
+smarttext = [
+  "qml/*.qml",
+  "qml/components/*.qml",
+  "qml/icons/*.svg"
+]
