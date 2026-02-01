@@ -3,8 +3,7 @@
 from pathlib import Path
 from PyInstaller.utils.hooks import collect_submodules
 
-# Resolve repo root (two levels up from this spec file)
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = Path(SPECPATH).resolve().parents[1]
 
 block_cipher = None
 
