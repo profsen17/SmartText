@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 from PySide6.QtCore import QObject, Signal, Slot, Property, QCoreApplication, QUrl
+import mimetypes
 
 from ..core.document import Document
 from .tabs_model import TabsModel
@@ -16,6 +17,7 @@ class AppController(QObject):
     currentIndexChanged = Signal()
     cursorPositionChanged = Signal()
     scrollYChanged = Signal()
+    fileInfoChanged = Signal() 
 
     # requests to QML
     requestSaveAs = Signal()
@@ -85,6 +87,7 @@ class AppController(QObject):
         self.documentTitleChanged.emit()
         self.cursorPositionChanged.emit()
         self.scrollYChanged.emit()
+        self.fileInfoChanged.emit()
 
     def _open_new_tab(self, doc: Document) -> None:
         new_row = self._tabs.add_doc(doc)
@@ -108,6 +111,54 @@ class AppController(QObject):
             if self._norm_path(d.path) == target:
                 return i
         return None
+
+    def _file_type_label_for_suffix(self, suffix: str) -> str:
+        s = (suffix or "").lower()
+
+        pretty = {
+            ".txt": "Plain Text",
+            ".md": "Markdown",
+            ".py": "Python",
+            ".json": "JSON",
+            ".qml": "QML",
+            ".js": "JavaScript",
+            ".ts": "TypeScript",
+            ".html": "HTML",
+            ".css": "CSS",
+            ".xml": "XML",
+            ".yaml": "YAML",
+            ".yml": "YAML",
+            ".toml": "TOML",
+            ".ini": "INI",
+            ".cfg": "Config",
+            ".log": "Log",
+            ".csv": "CSV",
+        }
+        if s in pretty:
+            return pretty[s]
+
+        # best-effort fallback
+        mt, _ = mimetypes.guess_type("x" + s)
+        if mt:
+            return mt
+        return "File"
+
+    def get_file_extension(self) -> str:
+        doc = self._current_doc()
+        if doc.path is None:
+            return ""
+        return doc.path.suffix or ""
+
+    fileExtension = Property(str, get_file_extension, notify=fileInfoChanged)
+
+    def get_file_type_label(self) -> str:
+        ext = self.get_file_extension()
+        if not ext:
+            return ""
+        return self._file_type_label_for_suffix(ext)
+
+    fileTypeLabel = Property(str, get_file_type_label, notify=fileInfoChanged)
+
 
     # -------------------------
     # Exposed properties
@@ -243,6 +294,7 @@ class AppController(QObject):
         path.write_text(doc.text, encoding="utf-8")
 
         doc.path = path
+        self.fileInfoChanged.emit()
         doc.modified = False
         self._tabs.update_row(self._current_index)
 
@@ -268,7 +320,7 @@ class AppController(QObject):
             self._sync_current_to_qml()
         elif index < self._current_index:
             self._current_index -= 1
-            self.currentIndexChanged.emit()
+            self._sync_current_to_qml()
 
     @Slot(int)
     def set_cursor_position(self, pos: int) -> None:

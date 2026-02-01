@@ -1124,6 +1124,100 @@ ApplicationWindow {
                 }
 
                 Item {
+                    id: fileTypePill
+                    z: 30
+                    anchors.top: parent.top
+                    anchors.right: parent.right
+                    anchors.topMargin: 12
+                    anchors.rightMargin: 14
+
+                    // ✅ give the container a real size
+                    width: pillBg.implicitWidth
+                    height: pillBg.implicitHeight
+
+                    property bool canShow: editorShell.hovering
+                                        && !editorShell.idleHidden
+                                        && !win.uiLocked
+                                        && appSafe
+                                        && appSafe.fileExtension !== ""
+
+                    enabled: opacity > 0.05
+                    opacity: 0
+                    visible: opacity > 0.0
+
+                    transform: Translate { id: pillTx; x: 180 }
+
+                    states: [
+                        State {
+                            name: "shown"
+                            when: fileTypePill.canShow
+                            PropertyChanges { target: fileTypePill; opacity: 1 }
+                            PropertyChanges { target: pillTx; x: 0 }
+                        },
+                        State {
+                            name: "hidden"
+                            when: !fileTypePill.canShow
+                            PropertyChanges { target: fileTypePill; opacity: 0 }
+                            PropertyChanges { target: pillTx; x: 180 }
+                        }
+                    ]
+
+                    transitions: [
+                        Transition {
+                            from: "hidden"; to: "shown"
+                            ParallelAnimation {
+                                NumberAnimation { target: pillTx; property: "x"; duration: 240; easing.type: Easing.OutCubic }
+                                NumberAnimation { target: fileTypePill; property: "opacity"; duration: 160; easing.type: Easing.OutCubic }
+                            }
+                        },
+                        Transition {
+                            from: "shown"; to: "hidden"
+                            ParallelAnimation {
+                                NumberAnimation { target: pillTx; property: "x"; duration: 200; easing.type: Easing.OutCubic }
+                                NumberAnimation { target: fileTypePill; property: "opacity"; duration: 120; easing.type: Easing.OutCubic }
+                            }
+                        }
+                    ]
+
+                    Rectangle {
+                        id: pillBg
+
+                        // ✅ make it define the size via implicitWidth/Height
+                        implicitHeight: 26
+                        implicitWidth: pillText.implicitWidth + 20
+
+                        anchors.fill: parent
+                        radius: height / 2
+                        antialiasing: true
+
+                        gradient: Gradient {
+                            GradientStop { position: 0.0; color: "#2b2b2b" }
+                            GradientStop { position: 1.0; color: "#1f1f1f" }
+                        }
+                        border.color: "#3a3a3a"
+                        border.width: 1
+
+                        Text {
+                            id: pillText
+                            anchors.centerIn: parent
+                            text: appSafe ? (appSafe.fileExtension + " (" + appSafe.fileTypeLabel + ")") : ""
+                            color: "#eaeaea"
+                            font.pixelSize: 12
+                        }
+                    }
+
+                    MultiEffect {
+                        anchors.fill: pillBg
+                        source: pillBg
+                        shadowEnabled: true
+                        shadowOpacity: 0.28
+                        shadowBlur: 0.6
+                        shadowVerticalOffset: 2
+                        visible: fileTypePill.opacity > 0.0
+                    }
+                }
+
+                Item {
                     id: overlay
                     anchors.left: parent.left
                     anchors.right: parent.right
