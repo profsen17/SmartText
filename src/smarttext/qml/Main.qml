@@ -1139,7 +1139,7 @@ ApplicationWindow {
                                         && !editorShell.idleHidden
                                         && !win.uiLocked
                                         && appSafe
-                                        && appSafe.fileExtension !== ""
+                                        && appSafe.fileTypeLabel !== ""
 
                     enabled: opacity > 0.05
                     opacity: 0
@@ -1182,27 +1182,53 @@ ApplicationWindow {
                     Rectangle {
                         id: pillBg
 
-                        // ✅ make it define the size via implicitWidth/Height
-                        implicitHeight: 26
-                        implicitWidth: pillText.implicitWidth + 20
+                        implicitHeight: 22
+                        implicitWidth: pillRow.implicitWidth + 16
 
                         anchors.fill: parent
-                        radius: height / 2
+                        radius: 7
                         antialiasing: true
 
-                        gradient: Gradient {
-                            GradientStop { position: 0.0; color: "#2b2b2b" }
-                            GradientStop { position: 1.0; color: "#1f1f1f" }
-                        }
-                        border.color: "#3a3a3a"
-                        border.width: 1
+                        // flatter, label-like
+                        color: "#2a2a2a"
+                        opacity: 0.55     // subtle tag
+                        border.width: 0   // no button border
 
-                        Text {
-                            id: pillText
+                        Row {
+                            id: pillRow
                             anchors.centerIn: parent
-                            text: appSafe ? (appSafe.fileExtension + " (" + appSafe.fileTypeLabel + ")") : ""
-                            color: "#eaeaea"
-                            font.pixelSize: 12
+                            spacing: 6
+
+                            // extension: compact + mono-ish feel
+                            Text {
+                                id: extText
+                                text: appSafe ? appSafe.fileExtension : ""
+                                color: "#eaeaea"
+                                font.pixelSize: 11
+                                font.family: "Monospace"
+                                font.bold: true
+                                opacity: 0.95
+                            }
+
+                            // small separator dot
+                            Rectangle {
+                                width: 3
+                                height: 3
+                                radius: 1.5
+                                color: "#eaeaea"
+                                opacity: 0.55
+                                anchors.verticalCenter: parent.verticalCenter
+                                visible: appSafe && appSafe.fileTypeLabel !== ""
+                            }
+
+                            // type label: lighter
+                            Text {
+                                id: typeText
+                                text: appSafe ? appSafe.fileTypeLabel : ""
+                                color: "#eaeaea"
+                                font.pixelSize: 11
+                                opacity: 0.70
+                            }
                         }
                     }
 
@@ -1479,6 +1505,69 @@ ApplicationWindow {
                             ]
                         }
                     }
+                }
+            }
+        }
+
+        DropArea {
+            id: fileDrop
+            anchors.fill: parent
+            z: 999999   // above editor content, below dialogs if needed
+
+            // Only accept when not locked by dialogs/settings
+            enabled: !win.uiLocked
+
+            onEntered: (drag) => {
+                // Accept only if there are urls (files)
+                if (drag.hasUrls) drag.accepted = true
+            }
+
+            onDropped: (drop) => {
+                if (!appSafe || !drop.hasUrls)
+                    return
+
+                // Open all files in the order they were dropped.
+                // The LAST opened one will become the current tab (focused),
+                // because appSafe.open_file() ends up switching currentIndex.
+                for (let i = 0; i < drop.urls.length; ++i) {
+                    const u = drop.urls[i]
+                    if (!u) continue
+
+                    const p = u.toString()
+
+                    // ignore folders
+                    if (p.endsWith("/"))
+                        continue
+
+                    appSafe.open_file(p)
+                }
+            }
+
+            // --- Visual overlay while dragging ---
+            Rectangle {
+                anchors.fill: parent
+                color: "#000000"
+                opacity: fileDrop.containsDrag ? 0.22 : 0.0
+                visible: opacity > 0
+                Behavior on opacity { NumberAnimation { duration: 140; easing.type: Easing.OutCubic } }
+
+                // dashed border style
+                Rectangle {
+                    anchors.fill: parent
+                    anchors.margins: 18
+                    color: "transparent"
+                    radius: win.cornerRadius
+                    border.width: 2
+                    border.color: "#5a5a5a"
+                    opacity: 0.8
+                }
+
+                Text {
+                    anchors.centerIn: parent
+                    text: "Drop a file to open"
+                    color: "#eaeaea"
+                    font.pixelSize: 14
+                    opacity: 0.9
                 }
             }
         }

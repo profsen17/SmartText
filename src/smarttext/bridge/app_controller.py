@@ -146,16 +146,19 @@ class AppController(QObject):
     def get_file_extension(self) -> str:
         doc = self._current_doc()
         if doc.path is None:
-            return ""
-        return doc.path.suffix or ""
+            return "—"
+        return doc.path.suffix or "—"
 
     fileExtension = Property(str, get_file_extension, notify=fileInfoChanged)
 
     def get_file_type_label(self) -> str:
-        ext = self.get_file_extension()
-        if not ext:
-            return ""
-        return self._file_type_label_for_suffix(ext)
+        doc = self._current_doc()
+
+        # Unsaved / no extension
+        if doc.path is None or not doc.path.suffix:
+            return "Plain Text"
+
+        return self._file_type_label_for_suffix(doc.path.suffix)
 
     fileTypeLabel = Property(str, get_file_type_label, notify=fileInfoChanged)
 
