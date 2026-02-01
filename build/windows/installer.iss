@@ -10,14 +10,14 @@ AppVersion={#MyAppVersion}
 AppPublisher={#MyAppPublisher}
 DefaultDirName={autopf}\{#MyAppName}
 DefaultGroupName={#MyAppName}
-OutputDir=dist_installer
+OutputDir={#SourcePath}\..\..\dist_installer
 OutputBaseFilename=SmartText-Setup
 Compression=lzma
 SolidCompression=yes
 WizardStyle=modern
 
 [Files]
-Source: "dist\SmartText\*"; DestDir: "{app}"; Flags: recursesubdirs createallsubdirs
+Source: "{#SourcePath}\..\..\dist\SmartText\*"; DestDir: "{app}"; Flags: recursesubdirs createallsubdirs
 
 [Tasks]
 Name: "desktopicon"; Description: "Create a &desktop icon"; GroupDescription: "Additional icons:"
