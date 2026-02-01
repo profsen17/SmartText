@@ -3,17 +3,20 @@
 from pathlib import Path
 from PyInstaller.utils.hooks import collect_submodules
 
+# Resolve repo root (two levels up from this spec file)
+ROOT = Path(__file__).resolve().parents[2]
+
 block_cipher = None
 
 datas = [
-    (str(Path("src") / "smarttext" / "qml"), "qml"),
+    (str(ROOT / "src" / "smarttext" / "qml"), "qml"),
 ]
 
 hiddenimports = collect_submodules("PySide6")
 
 a = Analysis(
-    [str(Path("src") / "smarttext" / "main.py")],
-    pathex=[".", "src"],
+    [str(ROOT / "src" / "smarttext" / "main.py")],
+    pathex=[str(ROOT / "src")],
     binaries=[],
     datas=datas,
     hiddenimports=hiddenimports,
