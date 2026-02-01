@@ -12,7 +12,7 @@ datas = [
 hiddenimports = collect_submodules("PySide6")
 
 a = Analysis(
-    ["-m", "smarttext.main"],
+    [str(Path("src") / "smarttext" / "main.py")],
     pathex=[".", "src"],
     binaries=[],
     datas=datas,
