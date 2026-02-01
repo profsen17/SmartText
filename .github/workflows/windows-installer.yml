@@ -35,10 +35,15 @@ jobs:
         run: |
           pyinstaller build/windows/smarttext.spec --noconfirm --clean
 
-      - name: Install Inno Setup and build installer
-        uses: Minionguyjpro/Inno-Setup-Action@v1
-        with:
-          path: build/windows/installer.iss
+      - name: Install Inno Setup (Chocolatey)
+        shell: pwsh
+        run: |
+          choco install innosetup -y
+
+      - name: Build installer (Inno Setup)
+        shell: pwsh
+        run: |
+          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" build/windows/installer.iss
 
       - name: Upload installer to GitHub Release
         uses: softprops/action-gh-release@v2
