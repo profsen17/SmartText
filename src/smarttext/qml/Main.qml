@@ -24,6 +24,24 @@ ApplicationWindow {
     property bool pendingRestore: false
     property int restoreToken: 0
 
+    property string actionHint: ""
+    property var actionHintItem: null
+
+    function showHint(text, item) {
+        actionHint = text || ""
+        actionHintItem = item || null
+    }
+
+    function hideHint(item) {
+        // Delay clearing so moving from one button to another doesn't flicker
+        Qt.callLater(() => {
+            if (actionHintItem === item) {
+                actionHint = ""
+                actionHintItem = null
+            }
+        })
+    }
+
     function restoreEditorState() {
         if (!appSafe) return
         restoring = true
@@ -695,7 +713,7 @@ ApplicationWindow {
                 property bool hoverFrozen: false
 
                 function resetIdleTimer() {
-                    if (!hovering) return
+                    if (!hovering && !sidebarHovering && !arrowHovering) return
                     idleHidden = false
                     idleTimer.restart()
                 }
@@ -705,7 +723,10 @@ ApplicationWindow {
                     id: sidebarCloseTimer
                     interval: 250
                     repeat: false
-                    onTriggered: editorShell.sidebarOpen = false
+                    onTriggered: {
+                        if (editorShell.sidebarHovering || editorShell.arrowHovering) return
+                        editorShell.sidebarOpen = false
+                    }
                 }
 
                 function cancelSidebarClose() { sidebarCloseTimer.stop() }
@@ -914,6 +935,8 @@ ApplicationWindow {
                         onEntered: {
                             if (win.uiLocked || editorShell.hoverFrozen) return
                             editorShell.arrowHovering = true
+                            editorShell.idleHidden = false
+                            editorShell.resetIdleTimer()
                             editorShell.cancelSidebarClose()
                             editorShell.sidebarOpen = true
                         }
@@ -939,18 +962,18 @@ ApplicationWindow {
                     opacity: 0
                     property bool sidebarVisible: false
                     visible: sidebarVisible
-                    enabled: opacity > 0.05   // don't steal hover/clicks while "invisible"
+                    enabled: sidebarVisible   // don't steal hover/clicks while "invisible"
 
                     states: [
                         State {
                             name: "open"
-                            when: editorShell.sidebarOpen && editorShell.hovering && !editorShell.idleHidden
+                            when: editorShell.sidebarOpen && !editorShell.idleHidden
                             PropertyChanges { target: sidebarTx; x: 0 }
                             PropertyChanges { target: leftSidebar; opacity: 1 }
                         },
                         State {
                             name: "closed"
-                            when: !(editorShell.sidebarOpen && editorShell.hovering && !editorShell.idleHidden)
+                            when: !(editorShell.sidebarOpen && !editorShell.idleHidden)
                             PropertyChanges { target: sidebarTx; x: -leftSidebar.width - 6 }
                             PropertyChanges { target: leftSidebar; opacity: 0 }
                         }
@@ -979,78 +1002,210 @@ ApplicationWindow {
                         }
                     ]
 
-                    Rectangle {
-                        id: pill
-                        anchors.fill: parent
-                        radius: width / 2
-                        color: "#1b1b1b"
-                        border.color: "#2a2a2a"
-                        border.width: 1
-                        clip: true
-                    }
-
                     HoverHandler {
+                        id: sidebarHoverHandler
                         target: leftSidebar
+
                         onHoveredChanged: {
-                            if (win.uiLocked) return
+                            if (win.uiLocked || editorShell.hoverFrozen) return
+
+                            editorShell.sidebarHovering = hovered
+
                             if (hovered) {
-                                if (editorShell.hoverFrozen) return
-                                editorShell.sidebarHovering = true
                                 editorShell.sidebarOpen = true
+                                editorShell.idleHidden = false
                                 editorShell.cancelSidebarClose()
+                                editorShell.resetIdleTimer()
                             } else {
-                                editorShell.sidebarHovering = false
                                 editorShell.scheduleSidebarClose()
                             }
                         }
+
+                        onPointChanged: {
+                            if (hovered && !win.uiLocked)
+                                editorShell.resetIdleTimer()
+                        }
                     }
 
-                    ScrollView {
+                    Item {
+                        id: wheelMenu
                         anchors.fill: parent
                         anchors.margins: editorShell.sidebarPad
-                        clip: true
+                        clip: false
 
-                        ScrollBar.vertical.policy: ScrollBar.AlwaysOff
-                        ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
+                        // --- wheel tuning ---
+                        property int itemSize: 38
+                        property real step: 54
+                        property int range: 2
+                        property int currentIndex: 0
+                        property int spinDir: 0
 
-                        Column {
-                            width: parent.width
-                            spacing: 10
+                        function wrapIndex(i) {
+                            const n = wheelModel.count
+                            if (n <= 0) return 0
+                            i = i % n
+                            if (i < 0) i += n
+                            return i
+                        }
 
-                            CircleIconButton {
-                                size: 38
-                                tooltipText: "New"
-                                iconSource: "../icons/new.svg"
-                                onClicked: if (appSafe) appSafe.new_file()
+                        function signedDistance(idx) {
+                            const n = wheelModel.count
+                            if (n <= 0) return 0
+                            let d = idx - currentIndex
+                            d = ((d % n) + n) % n
+                            if (d > n / 2) d -= n
+                            return d
+                        }
+
+                        function stepWheel(delta) {
+                            currentIndex = wrapIndex(currentIndex + delta)
+                        }
+
+                        function trigger(actionId) {
+                            if (win.uiLocked) return
+                            switch (actionId) {
+                            case "new":      if (appSafe) appSafe.new_file(); break
+                            case "open":     openDialog.open(); break
+                            case "save":     if (appSafe) appSafe.save(); break
+                            case "saveAs":   saveAsDialog.open(); break
+                            case "settings": settingsWindow.visible = true; break
+                            }
+                        }
+
+                        Timer {
+                            id: spinTimer
+                            interval: 220
+                            repeat: true
+                            running: false
+                            onTriggered: wheelMenu.stepWheel(wheelMenu.spinDir)
+                        }
+
+                        // --- Invisible hover zones to "rotate" the wheel ---
+                        Item {
+                            id: hoverZones
+                            anchors.fill: parent
+                            z: -10   // keep it behind the buttons
+
+                            Rectangle {
+                                anchors.left: parent.left
+                                anchors.right: parent.right
+                                anchors.top: parent.top
+                                height: parent.height * 0.35
+                                color: "transparent"
+
+                                HoverHandler {
+                                    onHoveredChanged: {
+                                        if (win.uiLocked) return
+                                        if (hovered) { wheelMenu.spinDir = -1; spinTimer.start() }
+                                        else { wheelMenu.spinDir = 0; spinTimer.stop() }
+                                    }
+                                }
                             }
 
-                            CircleIconButton {
-                                size: 38
-                                tooltipText: "Open"
-                                iconSource: "../icons/open.svg"
-                                onClicked: openDialog.open()
-                            }
+                            Rectangle {
+                                anchors.left: parent.left
+                                anchors.right: parent.right
+                                anchors.bottom: parent.bottom
+                                height: parent.height * 0.35
+                                color: "transparent"
 
-                            CircleIconButton {
-                                size: 38
-                                tooltipText: "Save"
-                                iconSource: "../icons/save.svg"
-                                enabled: appSafe ? appSafe.modified : false
-                                onClicked: if (appSafe) appSafe.save()
+                                HoverHandler {
+                                    onHoveredChanged: {
+                                        if (win.uiLocked) return
+                                        if (hovered) { wheelMenu.spinDir = +1; spinTimer.start() }
+                                        else { wheelMenu.spinDir = 0; spinTimer.stop() }
+                                    }
+                                }
                             }
+                        }
 
-                            CircleIconButton {
-                                size: 38
-                                tooltipText: "Save As"
-                                iconSource: "../icons/save_as.svg"
-                                onClicked: saveAsDialog.open()
-                            }
+                        // --- Wheel model (your actions) ---
+                        ListModel {
+                            id: wheelModel
+                            ListElement { actionId: "new";      tooltip: "New";      icon: "../icons/new.svg" }
+                            ListElement { actionId: "open";     tooltip: "Open";     icon: "../icons/open.svg" }
+                            ListElement { actionId: "save";     tooltip: "Save";     icon: "../icons/save.svg" }
+                            ListElement { actionId: "saveAs";   tooltip: "Save As";  icon: "../icons/save_as.svg" }
+                            ListElement { actionId: "settings"; tooltip: "Settings"; icon: "../icons/settings.svg" }
+                        }
 
-                            CircleIconButton {
-                                size: 38
-                                tooltipText: "Settings"
-                                iconSource: "../icons/settings.svg"
-                                onClicked: settingsWindow.visible = true
+                        // --- The wheel renderer ---
+                        Repeater {
+                            model: wheelModel
+
+                            delegate: Item {
+                                id: slot
+                                width: wheelMenu.itemSize
+                                height: wheelMenu.itemSize
+
+                                property real d: wheelMenu.signedDistance(index)
+                                property bool isCenter: d === 0
+                                property real ad: Math.abs(d)
+
+                                // ✅ ring logic
+                                property bool isNeighbor: ad === 1
+                                property bool isDisabledRing: ad >= 2
+
+                                // ✅ visuals
+                                opacity: isDisabledRing ? 0.55 : 1.0
+                                scale: isCenter ? 1.15 : (isNeighbor ? 0.95 : 0.88)
+
+                                // ✅ ONLY center + neighbors can be interacted with
+                                enabled: !isDisabledRing
+
+                                // layout (keep your arc)
+                                property real arc: Math.min(1.0, ad / (wheelMenu.range + 1.0))
+                                x: (wheelMenu.width - width) / 2 - (arc * arc * 12)
+                                y: (wheelMenu.height - height) / 2 + d * wheelMenu.step
+
+                                z: 100 - ad
+
+                                Behavior on x       { NumberAnimation { duration: 180; easing.type: Easing.OutCubic } }
+                                Behavior on y       { NumberAnimation { duration: 180; easing.type: Easing.OutCubic } }
+                                Behavior on scale   { NumberAnimation { duration: 180; easing.type: Easing.OutCubic } }
+                                Behavior on opacity { NumberAnimation { duration: 140; easing.type: Easing.OutCubic } }
+
+                                // optional: stronger shadow for center (adds “brighter” feel)
+                                Rectangle {
+                                    anchors.centerIn: parent
+                                    width: wheelMenu.itemSize
+                                    height: wheelMenu.itemSize
+                                    radius: width / 2
+                                    color: "transparent"
+                                    visible: true
+
+                                    layer.enabled: true
+                                    layer.effect: MultiEffect {
+                                        shadowEnabled: true
+                                        shadowOpacity: slot.isCenter ? 0.55 : (slot.isNeighbor ? 0.35 : 0.18)
+                                        shadowBlur: 0.9
+                                        shadowVerticalOffset: 3
+                                    }
+                                }
+
+                                CircleIconButton {
+                                    id: btn
+                                    anchors.centerIn: parent
+                                    size: wheelMenu.itemSize
+                                    tooltipText: model.tooltip
+                                    iconSource: model.icon
+
+                                    // ✅ disabled ring grey + unclickable
+                                    // ✅ keep your Save special-case
+                                    enabled: slot.enabled && ((model.actionId !== "save") ? true : (appSafe ? appSafe.modified : false))
+
+                                    opacity: slot.opacity
+                                    scale: slot.scale
+
+                                    onClicked: {
+                                        if (win.uiLocked) return
+                                        if (!slot.isCenter) {
+                                            wheelMenu.currentIndex = index
+                                            return
+                                        }
+                                        wheelMenu.trigger(model.actionId)
+                                    }
+                                }
                             }
                         }
                     }
@@ -1120,7 +1275,14 @@ ApplicationWindow {
                     id: idleTimer
                     interval: editorShell.idleDelayMs
                     repeat: false
-                    onTriggered: editorShell.idleHidden = true
+                    onTriggered: {
+                        // If the user is interacting with the left edge UI, DO NOT auto-hide.
+                        if (editorShell.sidebarOpen || editorShell.sidebarHovering || editorShell.arrowHovering) {
+                            idleTimer.restart()
+                            return
+                        }
+                        editorShell.idleHidden = true
+                    }
                 }
 
                 Item {
@@ -1335,7 +1497,9 @@ ApplicationWindow {
 
                             opacity: 0
                             transform: Translate { id: trNew; y: editorShell.buttonSlide }
-                            onHoveredChanged: rightActions.boostOpacity(btnNew, hovered)
+                            onHoveredChanged: {
+                                rightActions.boostOpacity(btnNew, hovered)
+                            }
 
                             states: [
                                 State { name: "shown"; when: editorShell.showOverlay
@@ -1378,7 +1542,9 @@ ApplicationWindow {
 
                             opacity: 0
                             transform: Translate { id: trOpen; y: editorShell.buttonSlide }
-                            onHoveredChanged: rightActions.boostOpacity(btnOpen, hovered)
+                            onHoveredChanged: {
+                                rightActions.boostOpacity(btnOpen, hovered)
+                            }
 
                             states: [
                                 State { name: "shown"; when: editorShell.showOverlay
@@ -1425,9 +1591,7 @@ ApplicationWindow {
                             opacity: 0
                             transform: Translate { id: trSave; y: editorShell.buttonSlide }
                             onHoveredChanged: {
-                                if (!editorShell.showOverlay) return
-                                if (!btnSave.enabled) return
-                                btnSave.opacity = hovered ? 1.0 : btnSave.shownOpacity
+                                rightActions.boostOpacity(btnSave, hovered)
                             }
 
                             states: [
@@ -1462,6 +1626,7 @@ ApplicationWindow {
                             ]
                         }
 
+
                         CircleIconButton {
                             id: btnSaveAs
                             size: 38
@@ -1471,7 +1636,9 @@ ApplicationWindow {
 
                             opacity: 0
                             transform: Translate { id: trSaveAs; y: editorShell.buttonSlide }
-                            onHoveredChanged: rightActions.boostOpacity(btnSaveAs, hovered)
+                            onHoveredChanged: {
+                                rightActions.boostOpacity(btnSaveAs, hovered)
+                            }
 
                             states: [
                                 State { name: "shown"; when: editorShell.showOverlay
@@ -1506,6 +1673,76 @@ ApplicationWindow {
                         }
                     }
                 }
+            }
+        }
+
+        Item {
+            id: actionHintPill
+            z: 999999
+            visible: win.actionHint !== "" && !win.uiLocked
+            opacity: visible ? 1 : 0
+            width: bg.implicitWidth
+            height: bg.implicitHeight
+
+            function reposition() {
+                if (!win.actionHintItem) return
+
+                // map hovered button center to rootBg
+                const p = win.actionHintItem.mapToItem(rootBg,
+                                                    win.actionHintItem.width / 2,
+                                                    0)
+
+                // place above the button (slightly to the right)
+                let x = p.x + 18 - width / 2
+                let y = p.y - height - 10
+
+                // clamp inside rootBg
+                x = Math.max(10, Math.min(rootBg.width - width - 10, x))
+                y = Math.max(10, Math.min(rootBg.height - height - 10, y))
+
+                actionHintPill.x = x
+                actionHintPill.y = y
+            }
+
+            Behavior on opacity { NumberAnimation { duration: 120; easing.type: Easing.OutCubic } }
+
+            Connections {
+                target: win
+                function onActionHintChanged() { Qt.callLater(actionHintPill.reposition) }
+                function onActionHintItemChanged() { Qt.callLater(actionHintPill.reposition) }
+            }
+            Connections {
+                target: rootBg
+                function onWidthChanged() { actionHintPill.reposition() }
+                function onHeightChanged() { actionHintPill.reposition() }
+            }
+
+            Rectangle {
+                id: bg
+                implicitWidth: txt.implicitWidth + 18
+                implicitHeight: 24
+                radius: 8
+                color: "#2a2a2a"
+                border.color: "#3a3a3a"
+                border.width: 1
+
+                Text {
+                    id: txt
+                    anchors.centerIn: parent
+                    text: win.actionHint
+                    color: "#eaeaea"
+                    font.pixelSize: 11
+                }
+            }
+
+            MultiEffect {
+                anchors.fill: bg
+                source: bg
+                shadowEnabled: true
+                shadowOpacity: 0.25
+                shadowBlur: 0.6
+                shadowVerticalOffset: 2
+                visible: actionHintPill.opacity > 0
             }
         }
 

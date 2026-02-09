@@ -1,2 +1,5 @@
 [console_scripts]
+smarttext-console = smarttext.main:main
+
+[gui_scripts]
 smarttext = smarttext.main:main

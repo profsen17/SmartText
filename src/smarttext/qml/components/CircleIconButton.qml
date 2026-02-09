@@ -10,68 +10,124 @@ ToolButton {
 
     width: size
     height: size
-    hoverEnabled: true
+    hoverEnabled: enabled
 
-    // -------- Custom tooltip --------
+    // ---- tooltip tuning ----
+    property int tooltipDelayMs: 350
+    property int tooltipGap: 10
+
     Timer {
         id: tipDelay
-        interval: 350
+        interval: btn.tooltipDelayMs
         repeat: false
-        onTriggered: tooltipBubble.visible = btn.hovered
+        onTriggered: {
+            if (btn.hovered && btn.enabled && btn.tooltipText.length > 0)
+                tip.openTip()
+        }
     }
 
     onHoveredChanged: {
         if (hovered) tipDelay.restart()
         else {
             tipDelay.stop()
-            tooltipBubble.visible = false
+            tip.closeTip()
         }
     }
 
-    Rectangle {
-        id: tooltipBubble
+    // Also close if disabled while hovered
+    onEnabledChanged: if (!enabled) tip.closeTip()
+
+    // ====== Custom styled ToolTip control instance ======
+    ToolTip {
+        id: tip
+        // Overlay overlay is the right place so it draws above everything
+        parent: Overlay.overlay
         visible: false
-        opacity: visible ? 1 : 0
-        z: 999
+        text: ""
 
-        radius: 8
-        color: "#CC1e1e1e"
-        border.color: "#333333"
-        border.width: 1
-
-        implicitWidth: tipLabel.implicitWidth + 16
-        implicitHeight: tipLabel.implicitHeight + 10
-
-        anchors.horizontalCenter: parent.horizontalCenter
-        anchors.bottom: parent.top
-        anchors.bottomMargin: 10
-
-        Behavior on opacity {
-            NumberAnimation { duration: 120; easing.type: Easing.OutCubic }
+        // nice pill look
+        background: Rectangle {
+            radius: height / 2
+            color: "#1e1e1e"
+            border.color: "#3a3a3a"
+            border.width: 1
         }
 
-        Label {
-            id: tipLabel
-            text: btn.tooltipText
-            color: "#eeeeee"
-            font.pixelSize: 12
-            anchors.centerIn: parent
+        contentItem: Item {
+            implicitWidth: tipText.implicitWidth
+            implicitHeight: tipText.implicitHeight
+
+            Text {
+                id: tipText
+                anchors.centerIn: parent
+                text: tip.text
+                color: "#eaeaea"
+                font.pixelSize: 11
+                font.weight: Font.Medium
+                horizontalAlignment: Text.AlignHCenter
+                verticalAlignment: Text.AlignVCenter
+            }
+        }
+
+        // padding (ToolTip doesn't always have padding in older versions)
+        implicitHeight: contentItem.implicitHeight + 10
+        implicitWidth: contentItem.implicitWidth + 18
+
+        function openTip() {
+            if (!Overlay.overlay) return
+            if (!btn.tooltipText || btn.tooltipText.length === 0) return
+
+            tip.text = btn.tooltipText
+            tip.positionTip()
+            tip.visible = true
+        }
+
+        function closeTip() {
+            tip.visible = false
+        }
+
+        function positionTip() {
+            if (!Overlay.overlay) return
+
+            // map button top-center to overlay coords
+            var p = btn.mapToItem(Overlay.overlay, btn.width / 2, 0)
+
+            var nx = p.x - tip.width / 2
+            var ny = p.y - tip.height - btn.tooltipGap
+
+            // clamp within overlay
+            var margin = 6
+            nx = Math.max(margin, Math.min(nx, Overlay.overlay.width - margin - tip.width))
+
+            // if too close to top, show below
+            if (ny < margin)
+                ny = p.y + btn.height + btn.tooltipGap
+
+            tip.x = nx
+            tip.y = ny
+        }
+
+        // keep it attached if layout moves while visible (wheel animation etc.)
+        Timer {
+            interval: 16
+            repeat: true
+            running: tip.visible
+            onTriggered: tip.positionTip()
         }
     }
 
-    // -------- Button background --------
+    // ====== Button visuals ======
     background: Rectangle {
         radius: btn.width / 2
         border.width: 1
         border.color: "#3a3a3a"
 
         color: !btn.enabled ? "#2a2a2a"
-            : btn.down ? "#3a3a3a"
-            : btn.hovered ? "#333333"
-            : "#2a2a2a"
+              : btn.down    ? "#3a3a3a"
+              : btn.hovered ? "#333333"
+              : "#2a2a2a"
     }
 
-    // -------- SVG icon --------
     contentItem: Item {
         anchors.fill: parent
 
