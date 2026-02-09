@@ -1072,6 +1072,27 @@ ApplicationWindow {
                             }
                         }
 
+                        // --- Mouse wheel scroll rotates the sidebar wheel ---
+                        WheelHandler {
+                            id: sidebarWheel
+                            target: wheelMenu
+                            acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
+
+                            onWheel: (event) => {
+                                if (win.uiLocked) return
+
+                                // Prefer angleDelta; fall back to pixelDelta for high-res devices
+                                const dy = event.angleDelta.y !== 0 ? event.angleDelta.y : event.pixelDelta.y
+                                if (dy === 0) return
+
+                                // wheel up => previous (-1), wheel down => next (+1)
+                                wheelMenu.stepWheel(dy > 0 ? -1 : +1)
+
+                                // prevent the editor ScrollView from also scrolling
+                                event.accepted = true
+                            }
+                        }
+
                         Timer {
                             id: spinTimer
                             interval: 220
