@@ -23,6 +23,7 @@ ApplicationWindow {
     readonly property string defaultShortcutSave: "Ctrl+S"
     readonly property string defaultShortcutSaveAs: "Ctrl+Shift+S"
     readonly property string defaultShortcutClose: "Ctrl+W"
+    readonly property string defaultShortcutSearch: "Ctrl+Space"
 
     // TRUE while the "Press a shortcut" popup is open
     property bool capturingShortcut: capturePopup.visible
@@ -431,6 +432,52 @@ ApplicationWindow {
                                         }
                                     }
 
+                                    // ---------- Search ----------
+                                    Rectangle {
+                                        Layout.fillWidth: true
+                                        height: 60
+                                        radius: 10
+                                        color: "#111111"
+                                        border.color: "#333333"
+                                        border.width: 1
+
+                                        RowLayout {
+                                            anchors.fill: parent
+                                            anchors.margins: 14
+                                            spacing: 12
+
+                                            Label { text: "Search"; color: "#dddddd"; font.pixelSize: 13 }
+                                            Item { Layout.fillWidth: true }
+
+                                            Rectangle {
+                                                width: 180
+                                                height: 34
+                                                radius: settingsWin.cornerRadius
+                                                color: "#1e1e1e"
+                                                border.color: "#333333"
+                                                border.width: 1
+
+                                                MouseArea {
+                                                    anchors.fill: parent
+                                                    hoverEnabled: true
+                                                    onClicked: capturePopup.openFor(
+                                                        "search",
+                                                        settingsStore ? settingsStore.shortcutSearch : settingsWin.defaultShortcutSearch
+                                                    )
+                                                    onEntered: parent.color = "#222222"
+                                                    onExited: parent.color = "#1e1e1e"
+                                                }
+
+                                                Label {
+                                                    anchors.centerIn: parent
+                                                    text: settingsStore ? settingsStore.shortcutSearch : settingsWin.defaultShortcutSearch
+                                                    color: "#eeeeee"
+                                                    font.pixelSize: 13
+                                                }
+                                            }
+                                        }
+                                    }
+
                                     Item { Layout.preferredHeight: 8 }
                                 }
                             }
@@ -477,6 +524,7 @@ ApplicationWindow {
                 if (action === "save")   return settingsWin.norm(settingsStore.shortcutSave)
                 if (action === "saveAs") return settingsWin.norm(settingsStore.shortcutSaveAs)
                 if (action === "close")  return settingsWin.norm(settingsStore.shortcutClose)
+                if (action === "search") return settingsWin.norm(settingsStore.shortcutSearch)
             }
             // fallback to defaults
             if (action === "new")    return settingsWin.norm(settingsWin.defaultShortcutNew)
@@ -484,6 +532,7 @@ ApplicationWindow {
             if (action === "save")   return settingsWin.norm(settingsWin.defaultShortcutSave)
             if (action === "saveAs") return settingsWin.norm(settingsWin.defaultShortcutSaveAs)
             if (action === "close")  return settingsWin.norm(settingsWin.defaultShortcutClose)
+            if (action === "search") return settingsWin.norm(settingsWin.defaultShortcutSearch)
             return ""
         }
 
@@ -493,13 +542,14 @@ ApplicationWindow {
             if (action === "save") return "Save"
             if (action === "saveAs") return "Save As"
             if (action === "close") return "Close"
+            if (action === "search") return "Search"
             return action
         }
 
         function findConflict(action, value) {
             // Returns "" if no conflict, otherwise returns the conflicting actionKey
             const v = settingsWin.norm(value)
-            const actions = ["new", "open", "save", "saveAs", "close"]
+            const actions = ["new", "open", "save", "saveAs", "close", "search"]
             for (let i = 0; i < actions.length; i++) {
                 const a = actions[i]
                 if (a === action) continue
@@ -603,6 +653,7 @@ ApplicationWindow {
             else if (action === "save") settingsStore.shortcutSave = v
             else if (action === "saveAs") settingsStore.shortcutSaveAs = v
             else if (action === "close") settingsStore.shortcutClose = v
+            else if (action === "search") settingsStore.shortcutSearch = v
         }
 
         background: Rectangle {
